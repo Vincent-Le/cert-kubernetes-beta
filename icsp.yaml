@@ -1,0 +1,12 @@
+apiVersion: operator.openshift.io/v1alpha1
+kind: ImageContentSourcePolicy
+metadata:
+  name: ibm-cp-automation-staging
+spec:
+  repositoryDigestMirrors:
+    - mirrors:
+        - cp.stg.icr.io/cp
+      source: cp.icr.io/cp
+    - mirrors:
+        - cp.stg.icr.io/cp
+      source: icr.io/cpopen

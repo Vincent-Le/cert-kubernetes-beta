@@ -240,7 +240,9 @@ function show_tips_es_to_os_migration(){
     echo "${YELLOW_TEXT}* How to do migration from Elasticsearch to Opensearch${RESET_TEXT}"
     # For step1
     printf "\n"
-    echo "  ${YELLOW_TEXT}- STEP 1 (Optional)${RESET_TEXT}: For high volume data you can reduce downtime by running pre-migration. Pre-migration can be executed on specific indices and must be executed following instructions documented in Knowledge Center(NEED to add KC link)."
+    echo "  ${YELLOW_TEXT}- STEP 1 (Optional)${RESET_TEXT}: Run pre-migration"
+    echo "    For high volume data you can reduce Business Automation Insights downtime by running pre-migration. This step must be executed following instructions documented in Knowledge Center: \"Migrating from Elasticsearch to OpenSearch\" chapter (https://www.ibm.com/docs/en/cloud-paks/cp-biz-automation/24.0.0?topic=o2uof22ioe-migrating-from-elasticsearch-opensearch)."
+
     echo "    ${YELLOW_TEXT}GOAL${RESET_TEXT}: To migrate those immutable indices first in order to reduce downtime. If you want to migrate all data at one time while downtime, you could bypass this step."
     echo "    ${YELLOW_TEXT}* Before execute the migration script, run the prerequesties to export varaiables in your terminal${RESET_TEXT}"
     echo "      execute commands:"
@@ -250,7 +252,7 @@ function show_tips_es_to_os_migration(){
     echo -e '\033[0;32m      # export OPENSEARCH_URL=https://'"${OPENSEARCH_URL}"'\033[0m'
     echo -e '\033[0;32m      # export OPENSEARCH_USERNAME="elastic"\033[0m'
     echo -e '\033[0;32m      # export OPENSEARCH_PASSWORD=$('"${CLI_CMD}"' get secret opensearch-ibm-elasticsearch-cred-secret -n '"$TARGET_PROJECT_NAME"' --no-headers --ignore-not-found -o jsonpath='{.data.elastic}' | base64 -d)\033[0m'
-    echo "    ${YELLOW_TEXT}* Migration script Usage:${RESET_TEXT}"
+    echo "    ${YELLOW_TEXT}* Migration script Usage:${RESET_TEXT} (For more information, please refer to Knowledge Center: \"Migrating from Elasticsearch to OpenSearch\" chapter [https://www.ibm.com/docs/en/cloud-paks/cp-biz-automation/24.0.0?topic=o2uof22ioe-migrating-from-elasticsearch-opensearch])"
     echo "      execute commands:"
     echo "      ${GREEN_TEXT}# $OPENSEARCH_MIGRATION_SCRIPT${RESET_TEXT} [-dryrun] [-include=<comma separated indices>] [-exclude=<comma separated indices>] [-include_regex=<regex pattern>] [-exclude_regex=<regex pattern>] [-starttime=<start time>] [-endtime=<end time>] [logfile] [--help]"
     echo "      Options:"
@@ -327,11 +329,29 @@ function show_tips_es_to_os_migration(){
                 echo -e '\033[0;32m      '"${GREEN_TEXT}"'# curl -X POST -k -u '"${MANAGEMENT_USERNAME}"':'"${MANAGEMENT_PASSWORD}"' "'"${MANAGEMENT_URL}"'/api/v1/processing/jobs/savepoints?cancel-job=true" -o /tmp/tmp_bai.json && [ "$(cat /tmp/tmp_bai.json)" != "[]" ] && '"${COPY_CMD}"' -rf /tmp/tmp_bai.json '"${UPGRADE_DEPLOYMENT_CR}"'/bai.json || rm -rf /tmp/tmp_bai.json\033[0m'
             fi
         fi
+
+        bpc_deployment_name=$(${CLI_CMD} get deployment --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME  -o name | grep insights-engine-cockpit)
+        if [[ ! -z $bpc_deployment_name ]]; then
+            printf "\n"
+            echo "  ${YELLOW_TEXT}- STEP ${step_num} (Required)${RESET_TEXT}: Scale down Business Performance Center (BPC) to ensure the prevention of dirty data generation while migration${RESET_TEXT}"
+            echo "    execute commands:"
+            bai_operator_name=$(${CLI_CMD} get deployment --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME  -o name | grep insights-engine-operator-controller-manager)
+            if [[ ! -z $bai_operator_name ]]; then
+                echo -e '\033[0;32m    '"${GREEN_TEXT}"'# '"${CLI_CMD}"' scale --replicas=0 '"${bai_operator_name}"' -n '"${TARGET_PROJECT_NAME}"'\033[0m'
+            fi
+            bai_operator_name=$(${CLI_CMD} get deployment --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME  -o name | grep ibm-insights-engine-operator)
+            if [[ ! -z $bai_operator_name ]]; then
+                echo -e '\033[0;32m    '"${GREEN_TEXT}"'# '"${CLI_CMD}"' scale --replicas=0 '"${bai_operator_name}"' -n '"${TARGET_PROJECT_NAME}"'\033[0m'
+            fi
+
+            echo -e '\033[0;32m    '"${GREEN_TEXT}"'# '"${CLI_CMD}"' scale --replicas=0 '"${bpc_deployment_name}"' -n '"${TARGET_PROJECT_NAME}"'\033[0m'
+            step_num=$((step_num + 1))
+        fi
     fi
 
     # For step4
     printf "\n"
-    echo "  ${YELLOW_TEXT}- STEP ${step_num} (Required)${RESET_TEXT}: Run migration script with MIGRATION mode (NOTES: if pre-migration [STEP 1] has been run, STEP 4 must be executed following instructions documented in Knowledge Center [NEED TO ADD KC LINK])."
+    echo "  ${YELLOW_TEXT}- STEP ${step_num} (Required)${RESET_TEXT}: Run migration script ${RED_TEXT}(WARNING: if pre-migration [STEP 1] has been run, STEP ${step_num} must be executed following instructions documented in Knowledge Center: \"Migrating from Elasticsearch to OpenSearch\" chapter [https://www.ibm.com/docs/en/cloud-paks/cp-biz-automation/24.0.0?topic=o2uof22ioe-migrating-from-elasticsearch-opensearch])${RESET_TEXT}."
     step_num=$((step_num + 1))
     echo "    ${YELLOW_TEXT}GOAL${RESET_TEXT}: To migrate all data from Elasticsearch to Opensearch as soon as possible during downtime before upgrade CP4BA deployment."
     echo "    ${YELLOW_TEXT}* Before execute the migration script, run the prerequesties to export varaiables in your terminal${RESET_TEXT}"
@@ -344,10 +364,10 @@ function show_tips_es_to_os_migration(){
     echo -e '\033[0;32m      # export OPENSEARCH_PASSWORD=$('"${CLI_CMD}"' get secret opensearch-ibm-elasticsearch-cred-secret -n '"$TARGET_PROJECT_NAME"' --no-headers --ignore-not-found -o jsonpath='{.data.elastic}' | base64 -d)\033[0m'
     echo "    ${YELLOW_TEXT}* Run the following command to migrate all the indexes, except the indexes related to Process Federation Server (if any) which must not be migrated with the migration script.${RESET_TEXT}"
     echo "      execute commands:"
-    echo "      ${GREEN_TEXT}# $OPENSEARCH_MIGRATION_SCRIPT${RESET_TEXT} -exclude_regex=icp4ba-pfs@*"
+    echo "      ${GREEN_TEXT}# $OPENSEARCH_MIGRATION_SCRIPT -exclude_regex=icp4ba-pfs@*${RESET_TEXT}"
     echo "    ${YELLOW_TEXT}* If your Cloud Pak for Business Automation includes IBM Process Federation Server or if your Cloud Pak for Business Automation includes at least a Business Automation Workflow or Workflow Process Service instance which has full text search enabled, run the following command to migrate IBM Process Federation Server saved searches indexes from Elasticsearch to OpenSearch.${RESET_TEXT}"
     echo "      execute commands:"
-    echo "      ${GREEN_TEXT}# $OPENSEARCH_MIGRATION_SCRIPT${RESET_TEXT} -include_regex=ibmpfssavedsearches*"
+    echo "      ${GREEN_TEXT}# $OPENSEARCH_MIGRATION_SCRIPT -include_regex=ibmpfssavedsearches*${RESET_TEXT}"
 
     # For step5
     printf "\n"
@@ -670,11 +690,6 @@ apiVersion: elasticsearch.opencontent.ibm.com/v1
 kind: ElasticsearchCluster
 metadata:
   annotations:
-    cloudpakId: '12345'
-    cloudpakName: CloudpakOpen
-    productChargedContainers: All
-    productID: '8675309'
-    productMetric: VIRTUAL_PROCESSOR_CORE
     productName: CloudpakOpen Elasticsearch
   name: opensearch
   namespace: "$TARGET_PROJECT_NAME"
@@ -1062,6 +1077,42 @@ function setup_opensearch(){
         msg "       username: elastic"
         msg "       password: ***************"
         echo -e '       NOTES: To get password using this command: \033[0;32m'"${CLI_CMD}"' get secret opensearch-ibm-elasticsearch-cred-secret -n '"$TARGET_PROJECT_NAME"' --no-headers --ignore-not-found -o jsonpath='{.data.elastic}' | base64 -d && echo\033[0m'
+    fi
+}
+
+function check_selection_migration(){
+    es_to_os_migration_flag=$(${CLI_CMD} get configmap ibm-cp4ba-os-migration-status --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o jsonpath={.data.opensearch_migration_done})
+    # es_to_os_migration_flag=$(echo $es_to_os_migration_flag | tr '[:upper:]' '[:lower:]')
+    if [[ $es_to_os_migration_flag == "NONEED" ]]; then
+        ES_TO_OS_MIGRATION_SELECTED="No"
+        MIGRATE_ES_TO_OS_DONE="NONEED"
+        create_configmap_os_migration
+        success "Found the \"opensearch_migration_done\" is \"$es_to_os_migration_flag\" in ibm-cp4ba-os-migration-status configMap in the project \"$TARGET_PROJECT_NAME\""
+        info "Script will bypass the migration of Elasticsearch to OpenSearch and continue to upgrade CP4BA operators and IBM Cloud Pak foundational services."
+        sleep 5
+    elif [[ ! -z $es_to_os_migration_flag ]]; then
+        ES_TO_OS_MIGRATION_SELECTED="Yes"
+        success "Found the \"opensearch_migration_done\" is \"$es_to_os_migration_flag\" in ibm-cp4ba-os-migration-status configMap in the project \"$TARGET_PROJECT_NAME\""
+    elif [[ -z $es_to_os_migration_flag ]]; then
+        # For PFS
+        while true; do
+            printf "\n"
+            printf "\x1B[1mAre you planning to use IBM Process Federation Server (PFS) after the upgrade AND if you want to perform the migration of Elasticsearch to OpenSearch?\x1B[0m (Yes/No): "
+            read -rp "" ans
+            case "$ans" in
+            "y"|"Y"|"yes"|"Yes"|"YES")
+                ES_TO_OS_MIGRATION_SELECTED="Yes"
+                break
+                ;;
+            "n"|"N"|"no"|"No"|"NO")
+                ES_TO_OS_MIGRATION_SELECTED="No"
+                break
+                ;;
+            *)
+                echo -e "Answer must be \"Yes\" or \"No\"\n"
+                ;;
+            esac
+        done
     fi
 }
 
@@ -6187,7 +6238,7 @@ function sync_property_into_final_cr(){
         fi
         if [[ $DB_TYPE == "postgresql-edb" ]]; then
             ${YQ_CMD} w -i ${CP4A_PATTERN_FILE_TMP} spec.baw_configuration.[0].database.type "postgresql"
-            ${YQ_CMD} w -i ${CP4A_PATTERN_FILE_TMP} spec.baw_configuration.[0].database.type.dc_use_postgres "true"
+            ${YQ_CMD} w -i ${CP4A_PATTERN_FILE_TMP} spec.baw_configuration.[0].database.dc_use_postgres "true"
             # always use default schema for postgresql EDB
             ${YQ_CMD} d -i ${CP4A_PATTERN_FILE_TMP} spec.baw_configuration.[0].database.current_schema
             # set dc_ssl_enabled always true for postgresql-edb
@@ -6263,7 +6314,7 @@ function sync_property_into_final_cr(){
         fi
         if [[ $DB_TYPE == "postgresql-edb" ]]; then
             ${YQ_CMD} w -i ${CP4A_PATTERN_FILE_TMP} spec.baw_configuration.[0].database.type "postgresql"
-            ${YQ_CMD} w -i ${CP4A_PATTERN_FILE_TMP} spec.baw_configuration.[0].database.type.dc_use_postgres "true"
+            ${YQ_CMD} w -i ${CP4A_PATTERN_FILE_TMP} spec.baw_configuration.[0].database.dc_use_postgres "true"
             # always use default schema for postgresql EDB
             ${YQ_CMD} d -i ${CP4A_PATTERN_FILE_TMP} spec.baw_configuration.[0].database.current_schema
             # set dc_ssl_enabled always true for postgresql-edb
@@ -6331,7 +6382,7 @@ function sync_property_into_final_cr(){
         fi
         if [[ $DB_TYPE == "postgresql-edb" ]]; then
             ${YQ_CMD} w -i ${CP4A_PATTERN_FILE_TMP} spec.baw_configuration.[1].database.type "postgresql"
-            ${YQ_CMD} w -i ${CP4A_PATTERN_FILE_TMP} spec.baw_configuration.[1].database.type.dc_use_postgres "true"
+            ${YQ_CMD} w -i ${CP4A_PATTERN_FILE_TMP} spec.baw_configuration.[1].database.dc_use_postgres "true"
             # always use default schema for postgresql EDB
             ${YQ_CMD} d -i ${CP4A_PATTERN_FILE_TMP} spec.baw_configuration.[1].database.current_schema
             # set dc_ssl_enabled always true for postgresql-edb
@@ -6410,7 +6461,7 @@ function sync_property_into_final_cr(){
         fi
         if [[ $DB_TYPE == "postgresql-edb" ]]; then
             ${YQ_CMD} w -i ${CP4A_PATTERN_FILE_TMP} spec.baw_configuration.[0].database.type "postgresql"
-            ${YQ_CMD} w -i ${CP4A_PATTERN_FILE_TMP} spec.baw_configuration.[0].database.type.dc_use_postgres "true"
+            ${YQ_CMD} w -i ${CP4A_PATTERN_FILE_TMP} spec.baw_configuration.[0].database.dc_use_postgres "true"
             # always use default schema for postgresql EDB
             ${YQ_CMD} d -i ${CP4A_PATTERN_FILE_TMP} spec.baw_configuration.[0].database.current_schema
             # set dc_ssl_enabled always true for postgresql-edb
@@ -8277,6 +8328,7 @@ function shutdown_operator(){
 
     info "Scaling down \"IBM CP4BA Insights Engine\" operator"
     kubectl scale --replicas=0 deployment ibm-insights-engine-operator -n $project_name >/dev/null 2>&1
+    kubectl scale --replicas=0 deployment iaf-insights-engine-operator-controller-manager -n $project_name >/dev/null 2>&1
     sleep 1
     echo "Done!"
 
@@ -8747,30 +8799,64 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
     # if [[ (" ${EXISTING_OPT_COMPONENT_ARR[@]} " =~ "bai") || $bai_flag == "True" || $bai_flag == "true" ]]; then
     if [[  ! -z $old_elastic_cr_name  ]]; then
         info "Found the legacy Elasticsearch deployment in the project \"$TARGET_PROJECT_NAME\"."
-        es_to_os_migration_flag=$(${CLI_CMD} get configmap ibm-cp4ba-os-migration-status --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o jsonpath={.data.opensearch_migration_done})
-        es_to_os_migration_flag=$(echo $es_to_os_migration_flag | tr '[:upper:]' '[:lower:]')
-        if [[ -z $es_to_os_migration_flag || $es_to_os_migration_flag == "no" ]]; then
-            check_es_to_os_migration
-        elif [[ $es_to_os_migration_flag == "yes" ]]; then
-            # the script still need check ElasticsearchCluster cr even opensearch_migration_done is yes
-            ${CLI_CMD} get crd |grep elasticsearch.opencontent.ibm.com >/dev/null 2>&1
-            if [ $? -eq 0 ]; then
-                opensearch_cr_name=$(${CLI_CMD} get ElasticsearchCluster -n $TARGET_PROJECT_NAME --no-headers --ignore-not-found | awk '{print $1}')
-                if [ -z $opensearch_cr_name ]; then
-                    warning "Opensearch is not installed (ElasticsearchCluster custom resource could not be found in project \"$TARGET_PROJECT_NAME\")."
-                    check_es_to_os_migration
-                else
-                    success "Found the \"opensearch_migration_done\" is \"Yes\" in ibm-cp4ba-os-migration-status configMap in the project \"$TARGET_PROJECT_NAME\""
-                    sleep 5
-                fi
-            else
-                warning "Not found ElasticsearchCluster CRD, you need to install Opensearch cluster before migration from Elasticserch to Opensearch."
+        if [[ (" ${EXISTING_OPT_COMPONENT_ARR[@]} " =~ "bai") || $bai_flag == "true" ]]; then
+        # test_flag="true"
+        # if [[ $test_flag == "false" ]]; then
+            info "Found the BAI component selected for this CP4BA deployment in the project \"$TARGET_PROJECT_NAME\"."
+            es_to_os_migration_flag=$(${CLI_CMD} get configmap ibm-cp4ba-os-migration-status --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o jsonpath={.data.opensearch_migration_done})
+            es_to_os_migration_flag=$(echo $es_to_os_migration_flag | tr '[:upper:]' '[:lower:]')
+            if [[ -z $es_to_os_migration_flag || $es_to_os_migration_flag == "no" ]]; then
                 check_es_to_os_migration
+            elif [[ $es_to_os_migration_flag == "yes" ]]; then
+                # the script still need check ElasticsearchCluster cr even opensearch_migration_done is yes
+                ${CLI_CMD} get crd |grep elasticsearch.opencontent.ibm.com >/dev/null 2>&1
+                if [ $? -eq 0 ]; then
+                    opensearch_cr_name=$(${CLI_CMD} get ElasticsearchCluster -n $TARGET_PROJECT_NAME --no-headers --ignore-not-found | awk '{print $1}')
+                    if [ -z $opensearch_cr_name ]; then
+                        warning "Opensearch is not installed (ElasticsearchCluster custom resource could not be found in project \"$TARGET_PROJECT_NAME\")."
+                        check_es_to_os_migration
+                    else
+                        success "Found the \"opensearch_migration_done\" is \"Yes\" in ibm-cp4ba-os-migration-status configMap in the project \"$TARGET_PROJECT_NAME\""
+                        sleep 5
+                    fi
+                else
+                    warning "Not found ElasticsearchCluster CRD, you need to install Opensearch cluster before migration from Elasticserch to Opensearch."
+                    check_es_to_os_migration
+                fi
+            fi
+        else
+            info "Not found the BAI component selected for this CP4BA deployment in the project \"$TARGET_PROJECT_NAME\"."
+            check_selection_migration
+            if [[ $ES_TO_OS_MIGRATION_SELECTED == "Yes" ]]; then
+                es_to_os_migration_flag=$(${CLI_CMD} get configmap ibm-cp4ba-os-migration-status --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o jsonpath={.data.opensearch_migration_done})
+                es_to_os_migration_flag=$(echo $es_to_os_migration_flag | tr '[:upper:]' '[:lower:]')
+                if [[ -z $es_to_os_migration_flag || $es_to_os_migration_flag == "no" ]]; then
+                    check_es_to_os_migration
+                elif [[ $es_to_os_migration_flag == "yes" ]]; then
+                    # the script still need check ElasticsearchCluster cr even opensearch_migration_done is yes
+                    ${CLI_CMD} get crd |grep elasticsearch.opencontent.ibm.com >/dev/null 2>&1
+                    if [ $? -eq 0 ]; then
+                        opensearch_cr_name=$(${CLI_CMD} get ElasticsearchCluster -n $TARGET_PROJECT_NAME --no-headers --ignore-not-found | awk '{print $1}')
+                        if [ -z $opensearch_cr_name ]; then
+                            warning "Opensearch is not installed (ElasticsearchCluster custom resource could not be found in project \"$TARGET_PROJECT_NAME\")."
+                            check_es_to_os_migration
+                        else
+                            success "Found the \"opensearch_migration_done\" is \"Yes\" in ibm-cp4ba-os-migration-status configMap in the project \"$TARGET_PROJECT_NAME\""
+                            sleep 5
+                        fi
+                    else
+                        warning "Not found ElasticsearchCluster CRD, you need to install Opensearch cluster before migration from Elasticserch to Opensearch."
+                        check_es_to_os_migration
+                    fi
+                fi
+            elif [[ $ES_TO_OS_MIGRATION_SELECTED == "No" ]]; then
+                MIGRATE_ES_TO_OS_DONE="NONEED"
+                create_configmap_os_migration
             fi
         fi
     fi
 
-    info "Starting to upgrade CP4BA operators and IBM foundation services"
+    info "Starting to upgrade CP4BA operators and IBM Cloud Pak foundational services"
     # check current cp4ba version
     check_cp4ba_operator_version $TARGET_PROJECT_NAME
 
@@ -8977,12 +9063,10 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
             sleep 2
         fi
 
-        # When select shared to deciated, the catalog need to switch from global to private.
-        # ENABLE_PRIVATE_CATALOG=1
+        # For shared->dedicated upgrade, we should allow user option to keep "global catalog"
         if [[ $ENABLE_PRIVATE_CATALOG -eq 0 && $UPGRADE_MODE == "shared2dedicated" ]]; then
-            ENABLE_PRIVATE_CATALOG=1
-            warning "Can NOT keep catalog source as global catalog namespace (GCN) when migration from \"Cluster-scoped\" to \"Namespace-scoped\"."
-            success "The script switches catalog source from global catalog namespace (GCN) to private catalog (namespace-scoped) automatically when migration from \"Cluster-scoped\" to \"Namespace-scoped\"."
+            echo "${RED_TEXT}[WARNING]${RESET_TEXT}: ${YELLOW_TEXT}Before proceeding with the upgrade: if you have multiple CP4BA deployments on this cluster and you don't want them to be updated, please update installPlan approval for BTS, EDB PostgreSQL on the other CP4BA deployments from \"Automatic\" to \"Manual\".${RESET_TEXT}"
+            read -rsn1 -p"Press any key to continue ...";echo
         fi
     fi
 
@@ -10356,11 +10440,11 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         #     isReadyCommonService=$(${CLI_CMD} get csv ibm-common-service-operator.$CS_OPERATOR_VERSION --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o jsonpath='{.status.phase}')
         #     if [[ -z $isReadyCommonService ]]; then
         #         if [ $ENABLE_PRIVATE_CATALOG -eq 1 ]; then
-        #             info "Upgrading/Switching the catalog of IBM foundation services to $TARGET_PROJECT_NAME."
+        #             info "Upgrading/Switching the catalog of IBM Cloud Pak foundational services to $TARGET_PROJECT_NAME."
         #             $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --operator-namespace $TARGET_PROJECT_NAME --yq "$CPFS_YQ_PATH" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION --enable-private-catalog --license-accept
-        #             success "Upgraded/Switched the catalog of IBM foundation services to $TARGET_PROJECT_NAME."
+        #             success "Upgraded/Switched the catalog of IBM Cloud Pak foundational services to $TARGET_PROJECT_NAME."
         #         else
-        #             info "Upgrading IBM foundation services to $CS_OPERATOR_VERSION."
+        #             info "Upgrading IBM Cloud Pak foundational services to $CS_OPERATOR_VERSION."
         #             $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --operator-namespace $TARGET_PROJECT_NAME --yq "$CPFS_YQ_PATH" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION -n openshift-marketplace --license-accept
         #         fi
         #     fi
@@ -10999,8 +11083,11 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         printf "\n"
         echo "${YELLOW_TEXT}[NEXT ACTIONS]:${RESET_TEXT}"
         step_num=1
+        echo "  - STEP ${step_num} ${YELLOW_TEXT}(Optional)${RESET_TEXT}: You can run ${GREEN_TEXT}\"./cp4a-deployment.sh -m upgradeOperatorStatus -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to check that the upgrade of the CP4BA operator and its dependencies is successful."
+        step_num=$((step_num + 1))
+
         if [[ $css_flag == "true" || " ${EXISTING_OPT_COMPONENT_ARR[@]} " =~ "css" ]]; then
-            echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You have Content Search Services (CSS) installed. Make sure you stop the the IBM Content Search Services index dispatcher. Refer to the FileNet P8 Platform Documentation for more details."
+            echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You have Content Search Services (CSS) installed. Make sure you stop the IBM Content Search Services index dispatcher. Refer to the FileNet P8 Platform Documentation for more details."
             echo "    ${YELLOW_TEXT}* Stopping the IBM Content Search Services index dispatcher.${RESET_TEXT}"
             echo "      1. Log in to the Administration Console for Content Platform Engine."
             echo "      2. In the navigation pane, select the domain icon."
@@ -11009,7 +11096,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
             step_num=$((step_num + 1))
         fi
         echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You need to run ${GREEN_TEXT}\"./cp4a-deployment.sh -m upgradeDeployment -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to upgrade CP4BA deployment."
-        echo "    ${RED_TEXT}[ATTENTION]: ${RESET_TEXT}${YELLOW_TEXT}When you run the [upgradeDeployment] mode of the cp4a-deployment.sh script, the updated custom resource (CR) must be manually applied so required additional actions can be completed before the upgrade of the deployment begins. Please refer to the KC (https://www.ibm.com/docs/en/cloud-paks/cp-biz-automation/24.0.0?topic=uycpd-updating-custom-resource-each-capability-in-your-deployment) to complete REQUIRED steps for the installed pattern(s).${RESET_TEXT}"
+        echo "    ${RED_TEXT}[ATTENTION]: ${RESET_TEXT}${YELLOW_TEXT}When you run the [upgradeDeployment] mode of the cp4a-deployment.sh script, the updated custom resource (CR) must be manually applied so required additional actions can be completed before the upgrade of the deployment begins. Please refer to the Knowledge Center: \"Updating the custom resource for each capability in your deployment\" chapter (https://www.ibm.com/docs/en/cloud-paks/cp-biz-automation/24.0.0?topic=uycpdf2-updating-custom-resource-each-capability-in-your-deployment) to complete REQUIRED steps for the installed pattern(s).${RESET_TEXT}"
 
     fi
 fi
@@ -11649,12 +11736,12 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
         sleep 10
 
         ## Apply workaround for https://jsw.ibm.com/browse/DBACLD-137719 before start migration CPfs
-        ## scale up ibm-bts-operator-controller-manager in ibm-common-services project after zenService ready
+        ## keep to scale down ibm-bts-operator-controller-manager in ibm-common-services project after zenService ready
         bts_operator_name=$(${CLI_CMD} get deployment ibm-bts-operator-controller-manager --no-headers --ignore-not-found -n ibm-common-services -o name)
         if [[ ! -z $bts_operator_name ]]; then
-            ${CLI_CMD} scale --replicas=1 deployment ibm-bts-operator-controller-manager -n ibm-common-services >/dev/null 2>&1
+            ${CLI_CMD} scale --replicas=0 deployment ibm-bts-operator-controller-manager -n ibm-common-services >/dev/null 2>&1
             if [[ $? -ne 0 ]]; then
-                warning "Failed to scale up ibm-bts-operator-controller-manager operator in the project \"ibm-common-services\". Please scale up ibm-bts-operator-controller-manager operator manually."
+                warning "Failed to scale down ibm-bts-operator-controller-manager operator in the project \"ibm-common-services\". Please scale down ibm-bts-operator-controller-manager operator manually."
             fi
         fi
     else

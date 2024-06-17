@@ -19,6 +19,8 @@ elif [[ "$isInstalled" == "Upgrading" || "$isInstalled" == "Restoring" ]]; then
     CP4BA_PFS_DEPLOYMENT_STATUS="${BLUE_TEXT}In Progress${RESET_TEXT}"
 elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_PFS_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_PFS_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_PFS_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi

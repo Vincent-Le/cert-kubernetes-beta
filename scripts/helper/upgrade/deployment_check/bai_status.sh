@@ -18,6 +18,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_BAI_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_BAI_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_BAI_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_BAI_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi

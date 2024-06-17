@@ -19,6 +19,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_ADP_VIEWONE_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ADP_VIEWONE_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ADP_VIEWONE_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_ADP_VIEWONE_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -32,6 +34,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_ADP_CDRA_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ADP_CDRA_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ADP_CDRA_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_ADP_CDRA_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -46,6 +50,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_ADP_CDS_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ADP_CDS_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ADP_CDS_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_ADP_CDS_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -60,6 +66,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_ADP_CPDS_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ADP_CPDS_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ADP_CPDS_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_ADP_CPDS_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -74,6 +82,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_ADP_GITSVC_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ADP_GITSVC_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ADP_GITSVC_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "$isInstalled"  ]; then
     CP4BA_ADP_GITSVC_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -88,6 +98,8 @@ elif [[ "$isInstalled" == "Ready" || "$isInstalled" == "Successful" ]]; then
     CP4BA_ADP_ACA_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ADP_ACA_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ADP_ACA_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "$isInstalled"  ]; then
     CP4BA_ADP_ACA_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi

@@ -31,6 +31,7 @@ SELECT_ALL="false"
 CLEAN_CPFS="true"
 CLEAN_CRDS="false"
 SEPARATION_DUTY="false"
+ALL_NAMESPACE="false"
 
 while getopts 'n:hsa' OPTION; do
 	case "$OPTION" in
@@ -128,7 +129,14 @@ echo "$CP4BA_CM_CONFIG" > "$CP4BA_CM_CONFIG_YAML"
 CP4BA_OPERATORS_NAMESPACE=$(${YQ_CMD} r "$CP4BA_CM_CONFIG_YAML" "operators_namespace")
 # get services namespace (Same as the CP4BA namespace)
 CP4BA_SERVICES_NAMESPACE=$(${YQ_CMD} r "$CP4BA_CM_CONFIG_YAML" "services_namespace")
-if [[ "$CP4BA_OPERATORS_NAMESPACE" != "$CP4BA_SERVICES_NAMESPACE" ]]; then
+
+if [[ "$CP4BA_OPERATORS_NAMESPACE" == "openshift-operators" ]]; then
+	ALL_NAMESPACE="true"
+	CLEAN_CPFS="false"
+	info "Operators are installed in namespace openshift-operators. This is a all-namespace scoped deployment, the script will only proceed to clean up CP4BA Namesapce."
+fi
+
+if [[ "$CP4BA_OPERATORS_NAMESPACE" != "$CP4BA_SERVICES_NAMESPACE" && "$ALL_NAMESPACE" == "false" ]]; then
 	SEPARATION_DUTY="true"
 fi
 if [[ "$SEPARATION_DUTY" == "true" ]]; then
@@ -136,63 +144,65 @@ if [[ "$SEPARATION_DUTY" == "true" ]]; then
 fi
 rm "$CP4BA_CM_CONFIG_YAML"
 
-# CPFS shared check
-CS_MAP=$(oc get configmap "${COMMON_SERVICES_CM_DEDICATED_NAME}"  -n kube-public -o jsonpath="{ .data['common-service-maps\.yaml']}" 2>/dev/null)
-if [[ -z $CS_MAP ]]; then
-	error "No Cloud Pak foundational services mapping was detected, Cloud Pak foundational services could be shared or does not exist. The script aborted."
-	exit 1
-else
-	CS_MAPS_YAML=$(mktemp) 
-	echo "$CS_MAP" > "$CS_MAPS_YAML"
-	CS_NAMESPACE_COUNT=$(${YQ_CMD} r "$CS_MAPS_YAML" "namespaceMapping" -l)
-	for(( i = 0; i < $CS_NAMESPACE_COUNT; i++ ))
-	do
-		# Get CS namespace
-		CS_NS=$(${YQ_CMD} r "$CS_MAPS_YAML" "namespaceMapping[${i}].map-to-common-service-namespace")
-		# Get CS control namespace
-		CPFS_CONTROL_NAMESPACE=$(${YQ_CMD} r "$CS_MAPS_YAML" "controlNamespace")
-		# Get Shared namespace count
-		SHARED_NAMESPACE_COUNT=$(${YQ_CMD} r "$CS_MAPS_YAML" "namespaceMapping[${i}].requested-from-namespace" -l)
-		# Check if the Entered CP4BA namespace is in the list
-		for((j = 0; j < $SHARED_NAMESPACE_COUNT; j++))
-		do
-			# Get Cloud Pak namespace
-			CP_NS=$(${YQ_CMD} r "$CS_MAPS_YAML" "namespaceMapping[${i}].requested-from-namespace[${j}]")
-			if [[ "$CP_NS" == "$CP4BA_NAMESPACE" ]];then
-				NAMESPACES_MAPPED_TO_CS=$(${YQ_CMD} r "$CS_MAPS_YAML" "namespaceMapping[${i}].requested-from-namespace")
-				CPFS_SHARED_NAMESPACE=$(${YQ_CMD} r "$CS_MAPS_YAML" "namespaceMapping[${i}].map-to-common-service-namespace")
-				CS_MAP_INDEX="${i}"
-				# Found and break out of nested loop
-				break 2
-			fi
-		done
-		
-	done
-
-	# Check if CPFS Namespace is found
-	if [[ -z ${CPFS_SHARED_NAMESPACE} ]]; then
-		error "The CP4BA Namespace \"${CP4BA_NAMESPACE}\" does not map to any Cloud Pak foundational services, please make sure the namespace you entered is correct. The script aborted."
+if [[ "$ALL_NAMESPACE" == "false" ]]; then
+	# CPFS shared check
+	CS_MAP=$(oc get configmap "${COMMON_SERVICES_CM_DEDICATED_NAME}"  -n kube-public -o jsonpath="{ .data['common-service-maps\.yaml']}" 2>/dev/null)
+	if [[ -z $CS_MAP ]]; then
+		error "No Cloud Pak foundational services mapping was detected, Cloud Pak foundational services could be shared or does not exist. The script aborted."
 		exit 1
 	else
-		# CPFS mapped to CP4BA namespace found
-		echo -e "\nCloud Pak foundational services namespace:\n- ${CPFS_SHARED_NAMESPACE}"
-		if [[ "${SHARED_NAMESPACE_COUNT}" -gt 0 ]]; then
-			echo -e "\nList of namespace(s) that use Cloud Pak foundational services:"
-			echo -e "$NAMESPACES_MAPPED_TO_CS"
-		fi
+		CS_MAPS_YAML=$(mktemp) 
+		echo "$CS_MAP" > "$CS_MAPS_YAML"
+		CS_NAMESPACE_COUNT=$(${YQ_CMD} r "$CS_MAPS_YAML" "namespaceMapping" -l)
+		for(( i = 0; i < $CS_NAMESPACE_COUNT; i++ ))
+		do
+			# Get CS namespace
+			CS_NS=$(${YQ_CMD} r "$CS_MAPS_YAML" "namespaceMapping[${i}].map-to-common-service-namespace")
+			# Get CS control namespace
+			CPFS_CONTROL_NAMESPACE=$(${YQ_CMD} r "$CS_MAPS_YAML" "controlNamespace")
+			# Get Shared namespace count
+			SHARED_NAMESPACE_COUNT=$(${YQ_CMD} r "$CS_MAPS_YAML" "namespaceMapping[${i}].requested-from-namespace" -l)
+			# Check if the Entered CP4BA namespace is in the list
+			for((j = 0; j < $SHARED_NAMESPACE_COUNT; j++))
+			do
+				# Get Cloud Pak namespace
+				CP_NS=$(${YQ_CMD} r "$CS_MAPS_YAML" "namespaceMapping[${i}].requested-from-namespace[${j}]")
+				if [[ "$CP_NS" == "$CP4BA_NAMESPACE" ]];then
+					NAMESPACES_MAPPED_TO_CS=$(${YQ_CMD} r "$CS_MAPS_YAML" "namespaceMapping[${i}].requested-from-namespace")
+					CPFS_SHARED_NAMESPACE=$(${YQ_CMD} r "$CS_MAPS_YAML" "namespaceMapping[${i}].map-to-common-service-namespace")
+					CS_MAP_INDEX="${i}"
+					# Found and break out of nested loop
+					break 2
+				fi
+			done
+			
+		done
 
-		if [[ "${SHARED_NAMESPACE_COUNT}" -gt 1 && "${SEPARATION_DUTY}" == "false" ]]; then
-			info "Multiple namespaces are sharing the same Cloud Pak foundational services. This script does not support cleaning up shared Cloud Pak foundational services. The script will only clean up Cloud Pak for Business Automation namespace."
-			CLEAN_CPFS="false"
-		fi
+		# Check if CPFS Namespace is found
+		if [[ -z ${CPFS_SHARED_NAMESPACE} ]]; then
+			error "The CP4BA Namespace \"${CP4BA_NAMESPACE}\" does not map to any Cloud Pak foundational services, please make sure the namespace you entered is correct. The script aborted."
+			exit 1
+		else
+			# CPFS mapped to CP4BA namespace found
+			echo -e "\nCloud Pak foundational services namespace:\n- ${CPFS_SHARED_NAMESPACE}"
+			if [[ "${SHARED_NAMESPACE_COUNT}" -gt 0 ]]; then
+				echo -e "\nList of namespace(s) that use Cloud Pak foundational services:"
+				echo -e "$NAMESPACES_MAPPED_TO_CS"
+			fi
 
-		if [[ "${SHARED_NAMESPACE_COUNT}" -gt 2 && "${SEPARATION_DUTY}" == "true" ]]; then
-			info "Multiple namespaces are sharing the same Cloud Pak foundational services. This script does not support cleaning up shared Cloud Pak foundational services. The script will only clean up Cloud Pak for Business Automation namespace."
-			CLEAN_CPFS="false"
+			if [[ "${SHARED_NAMESPACE_COUNT}" -gt 1 && "${SEPARATION_DUTY}" == "false" ]]; then
+				info "Multiple namespaces are sharing the same Cloud Pak foundational services. This script does not support cleaning up shared Cloud Pak foundational services. The script will only clean up Cloud Pak for Business Automation namespace."
+				CLEAN_CPFS="false"
+			fi
+
+			if [[ "${SHARED_NAMESPACE_COUNT}" -gt 2 && "${SEPARATION_DUTY}" == "true" ]]; then
+				info "Multiple namespaces are sharing the same Cloud Pak foundational services. This script does not support cleaning up shared Cloud Pak foundational services. The script will only clean up Cloud Pak for Business Automation namespace."
+				CLEAN_CPFS="false"
+			fi
 		fi
 	fi
+	success "Cloud Pak foundational services mapping detected. Clean-up may continue."
 fi
-success "Cloud Pak foundational services mapping detected. Clean-up may continue."
 
 # Check if Multiple CP4BA are installed in the same cluster
 while true; do

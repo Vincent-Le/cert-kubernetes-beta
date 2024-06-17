@@ -637,7 +637,7 @@ Runs the Content Project Deployment Service REST Get initialization endpoint whi
 
 	cpds_configureOS.sh
 	
-Runs the Content Project Deployment Service REST POST initialization endpoint which Initializes or updates/upgrades the the Content Platform Engine Object Store (OS).  If the cpds_getOSInitStat.sh was run and the OS returned false for isInitialized, the operations performed in this script would initialize the OS to the appropriate levels.
+Runs the Content Project Deployment Service REST POST initialization endpoint which Initializes or updates/upgrades the Content Platform Engine Object Store (OS).  If the cpds_getOSInitStat.sh was run and the OS returned false for isInitialized, the operations performed in this script would initialize the OS to the appropriate levels.
 	
 NOTE: The operator should perform initialization of the Object Store automatically when setting up a Automatic Document Processing (ADP) Object Store.
 	

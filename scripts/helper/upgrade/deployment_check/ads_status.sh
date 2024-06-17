@@ -19,6 +19,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_ADS_CREDENTIALS_SERVICE_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ADS_CREDENTIALS_SERVICE_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ADS_CREDENTIALS_SERVICE_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_ADS_CREDENTIALS_SERVICE_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -33,6 +35,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_ADS_GIT_SERVICE_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ADS_GIT_SERVICE_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ADS_GIT_SERVICE_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_ADS_GIT_SERVICE_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -47,6 +51,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_ADS_LTPA_CREATION_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ADS_LTPA_CREATION_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ADS_LTPA_CREATION_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_ADS_LTPA_CREATION_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -61,6 +67,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_ADS_MONGO_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ADS_MONGO_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ADS_MONGO_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_ADS_MONGO_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -75,6 +83,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_ADS_PARSING_SERVICE_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ADS_PARSING_SERVICE_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ADS_PARSING_SERVICE_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_ADS_PARSING_SERVICE_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -89,6 +99,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_ADS_RESTAPI_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ADS_RESTAPI_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ADS_RESTAPI_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_ADS_RESTAPI_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -103,6 +115,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_ADS_RRREGISTRATION_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ADS_RRREGISTRATION_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ADS_RRREGISTRATION_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_ADS_RRREGISTRATION_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -117,6 +131,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_ADS_RUN_SERVICE_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ADS_RUN_SERVICE_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ADS_RUN_SERVICE_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_ADS_RUN_SERVICE_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -131,6 +147,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_ADS_RUNTIME_SERVICE_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ADS_RUNTIME_SERVICE_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ADS_RUNTIME_SERVICE_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_ADS_RUNTIME_SERVICE_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi

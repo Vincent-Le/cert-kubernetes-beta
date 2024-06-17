@@ -1007,8 +1007,10 @@ function show_cp4ba_upgrade_status() {
     echo "${YELLOW_TEXT}[NEXT ACTION]${RESET_TEXT}:"
     echo "${YELLOW_TEXT}  * After the status of upgrade for CP4BA components showing as ${RESET_TEXT}${GREEN_TEXT}\"Done\"${RESET_TEXT}${YELLOW_TEXT}, and then you need to execute follow steps${RESET_TEXT}:"
     if [[ $CONTENT_CR_EXIST == "Yes" || (" ${EXISTING_PATTERN_ARR[@]} " =~ "content") || ((" ${EXISTING_PATTERN_ARR[@]} " =~ "workflow") && (! " ${EXISTING_PATTERN_ARR[@]} " =~ "workflow-process-service")) || (" ${EXISTING_PATTERN_ARR[@]} " =~ "document_processing") || (" ${EXISTING_OPT_COMPONENT_ARR[@]} " =~ "baw_authoring") || (" ${EXISTING_OPT_COMPONENT_ARR[@]} " =~ "ae_data_persistence") ]]; then
-        echo -e "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: Run ${GREEN_TEXT}\"./cp4a-pre-upgrade-and-post-upgrade-optional.sh post-upgrade\"${RESET_TEXT} ${YELLOW_TEXT}(NOTES: AFTER UPGRADING IBM CLOUD PAK FOR BUSINESS AUTOMATION (CP4BA) DEPLOYMENT SUCCESSFULLY, YOU NEED TO RUN \"./cp4a-pre-upgrade-and-post-upgrade-optional.sh post-upgrade\", AND THEN CLEAN BROWSER COOKIE BEFORE LOGIN${RESET_TEXT} ${RED_TEXT}[DO NOT need to run it when upgrade CP4BA from 23.0.2.X to 24.0.0 (migration IBM Cloud Pak foundational services from Cluster-scoped -> Cluster-scoped or Namespace-scoped -> Namespace-scoped)]${RESET_TEXT}"
-        echo -e "    ${YELLOW_TEXT}[NOTES:]${RESET_TEXT}: After running ${GREEN_TEXT}\"./cp4a-pre-upgrade-and-post-upgrade-optional.sh post-upgrade\"${RESET_TEXT}, you can access the Administration Console for Content Platform Engine after next reconcile finishing for new custom resource."
+        echo -e "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: Run ${GREEN_TEXT}\"./cp4a-pre-upgrade-and-post-upgrade-optional.sh post-upgrade\"${RESET_TEXT} ${YELLOW_TEXT}(NOTES: AFTER UPGRADING IBM CLOUD PAK FOR BUSINESS AUTOMATION (CP4BA) DEPLOYMENT SUCCESSFULLY, YOU NEED TO RUN \"./cp4a-pre-upgrade-and-post-upgrade-optional.sh post-upgrade\", AND THEN CLEAN BROWSER COOKIE BEFORE LOGIN.${RESET_TEXT}"
+        echo -e "    ${YELLOW_TEXT}[ATTENTION]${RESET_TEXT}: ${RED_TEXT}DO NOT need to run it when upgrade CP4BA from 23.0.2.X to 24.0.0 (migration IBM Cloud Pak foundational services from Cluster-scoped -> Cluster-scoped or Namespace-scoped -> Namespace-scoped).${RESET_TEXT}"
+        echo -e "    ${YELLOW_TEXT}[NOTES]${RESET_TEXT}: After running ${GREEN_TEXT}\"./cp4a-pre-upgrade-and-post-upgrade-optional.sh post-upgrade\"${RESET_TEXT}, you can access the Administration Console for Content Platform Engine after next reconcile finishing for new custom resource."
+
         printf "\n"
         step_num=$((step_num + 1))
     fi
@@ -1026,7 +1028,7 @@ function show_cp4ba_upgrade_status() {
     fi
 
     if [[ $css_flag == "true" || " ${EXISTING_OPT_COMPONENT_ARR[@]} " =~ "css" ]]; then
-        echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You have Content Search Services (CSS) installed. Make sure you start the the IBM Content Search Services index dispatcher. Refer to the FileNet P8 Platform Documentation for more details."
+        echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You have Content Search Services (CSS) installed. Make sure you start the IBM Content Search Services index dispatcher. Refer to the FileNet P8 Platform Documentation for more details."
         echo "    ${YELLOW_TEXT}* Starting the IBM Content Search Services index dispatcher.${RESET_TEXT}"
         echo "      1. Log in to the Administration Console for Content Platform Engine."
         echo "      2. In the navigation pane, select the domain icon."
@@ -1046,5 +1048,5 @@ function show_cp4ba_upgrade_status() {
     fi
 
     printf "\n"
-    echo "${YELLOW_TEXT}[ATTENTION]: ${RESET_TEXT}${YELLOW_TEXT}PLEASE DON'T SET ${RESET_TEXT}${RED_TEXT}\"shared_configuration.sc_egress_configuration.sc_restricted_internet_access\"${RESET_TEXT}${YELLOW_TEXT} AS ${RESET_TEXT}${RED_TEXT}\"true\"${RESET_TEXT}${YELLOW_TEXT} UNTIL AFTER YOU'VE COMPLETED THE CP4BA UPGRADE TO $CP4BA_RELEASE_BASE.${RESET_TEXT}"
+    echo "${YELLOW_TEXT}[ATTENTION]: ${RESET_TEXT}${YELLOW_TEXT}PLEASE DON'T SET ${RESET_TEXT}${RED_TEXT}\"shared_configuration.sc_egress_configuration.sc_restricted_internet_access\"${RESET_TEXT}${YELLOW_TEXT} AS ${RESET_TEXT}${RED_TEXT}\"true\"${RESET_TEXT}${YELLOW_TEXT} UNTIL AFTER YOU'VE COMPLETED THE CP4BA UPGRADE TO $CP4BA_RELEASE_BASE.${RESET_TEXT} ${GREEN_TEXT}(UNLESS YOU ALREADY HAD THIS SET TO \"true\" IN THE CP4BA 23.0.2.X)${RESET_TEXT}"
 }

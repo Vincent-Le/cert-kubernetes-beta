@@ -845,13 +845,6 @@ spec:
       pull_policy: IfNotPresent
       ## The trace Specification for database handling job, the trace is disabled by default, you can enable it when the job fails, the sample trace specification is WLE.*=all:com.ibm.bpm.*=all:com.ibm.workflow.*=all
       trace_specification: ""
-    bas_auto_import_job:
-      ## Workflow Server Business Automation Studio toolkit init image repository URL.
-      repository: cp.icr.io/cp/cp4a/baw/toolkit-installer
-      ## Workflow Server Business Automation Studio toolkit init image repository tag.
-      tag: "24.0.0"
-      ## Pull policy for Workflow Server Business Automation Studio toolkit init image. Default value is IfNotPresent. Possible values are IfNotPresent, Always.
-      pull_policy: IfNotPresent
 
     ## The database configuration for Workflow Server
     database:

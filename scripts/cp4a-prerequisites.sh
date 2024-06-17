@@ -1719,6 +1719,78 @@ function check_property_file(){
         fi
     fi
 
+    # Check the directory for certificate should be different for IM/Zen/BTS/cp4ba_tls_issuer
+    # IM metastore external Postgres DB
+    cert_dir_array=()
+    tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_POSTGRESDB_FOR_IM_FLAG)")
+    tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
+    if [[ $tmp_flag == "true" || $tmp_flag == "yes" || $tmp_flag == "y" ]]; then
+        im_external_db_cert_folder="$(prop_user_profile_property_file CP4BA.IM_EXTERNAL_POSTGRES_DATABASE_SSL_CERT_FILE_FOLDER)"
+        im_external_db_cert_folder=$(sed -e 's/^"//' -e 's/"$//' <<<"$im_external_db_cert_folder")
+        cert_dir_array=( "${cert_dir_array[@]}" "${im_external_db_cert_folder}" )
+    fi
+
+    # Zen metastore external Postgres DB
+    tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_POSTGRESDB_FOR_ZEN_FLAG)")
+    tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
+    if [[ $tmp_flag == "true" || $tmp_flag == "yes" || $tmp_flag == "y" ]]; then
+        zen_external_db_cert_folder="$(prop_user_profile_property_file CP4BA.ZEN_EXTERNAL_POSTGRES_DATABASE_SSL_CERT_FILE_FOLDER)"
+        zen_external_db_cert_folder=$(sed -e 's/^"//' -e 's/"$//' <<<"$zen_external_db_cert_folder")
+        cert_dir_array=( "${cert_dir_array[@]}" "${zen_external_db_cert_folder}" )
+    fi
+
+    # BTS metastore external Postgres DB
+    tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_POSTGRESDB_FOR_BTS_FLAG)")
+    tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
+    if [[ $tmp_flag == "true" || $tmp_flag == "yes" || $tmp_flag == "y" ]]; then
+        bts_external_db_cert_folder="$(prop_user_profile_property_file CP4BA.BTS_EXTERNAL_POSTGRES_DATABASE_SSL_CERT_FILE_FOLDER)"
+        bts_external_db_cert_folder=$(sed -e 's/^"//' -e 's/"$//' <<<"$bts_external_db_cert_folder")
+        cert_dir_array=( "${cert_dir_array[@]}" "${bts_external_db_cert_folder}" )
+    fi
+    # Issuer to make Opensearch/Kafka use external certificate
+    tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_CERT_OPENSEARCH_KAFKA_FLAG)")
+    tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
+    if [[ $tmp_flag == "true" || $tmp_flag == "yes" || $tmp_flag == "y" ]]; then
+        external_cert_issuer_folder="$(prop_user_profile_property_file CP4BA.EXTERNAL_ROOT_CA_FOR_OPENSEARCH_KAFKA_FOLDER)"
+        external_cert_issuer_folder=$(sed -e 's/^"//' -e 's/"$//' <<<"$external_cert_issuer_folder")
+        cert_dir_array=( "${cert_dir_array[@]}" "${external_cert_issuer_folder}" )
+    fi
+
+    declare -A dir_count
+    for element in "${cert_dir_array[@]}"; do
+        if [[ -n "${dir_count[$element]}" ]]; then
+            dir_count[$element]=$((dir_count[$element] + 1))
+        else
+            dir_count[$element]=1
+        fi
+    done
+
+    duplicates_dir_found="No"
+    for element in "${!dir_count[@]}"; do
+        if [[ ${dir_count[$element]} -gt 1 ]]; then
+            duplicates_dir_found="Yes"
+        fi
+    done
+
+    if [[ $duplicates_dir_found == "Yes" ]]; then
+        error_value_tag=1
+        error "Found the same directory is used for below certificate folder's property."
+        if [[ ! -z $im_external_db_cert_folder ]]; then
+            msg "CP4BA.IM_EXTERNAL_POSTGRES_DATABASE_SSL_CERT_FILE_FOLDER: \"$im_external_db_cert_folder\""
+        fi
+        if [[ ! -z $im_external_db_cert_folder ]]; then
+            msg "CP4BA.ZEN_EXTERNAL_POSTGRES_DATABASE_SSL_CERT_FILE_FOLDER: \"$zen_external_db_cert_folder\""
+        fi
+        if [[ ! -z $im_external_db_cert_folder ]]; then
+            msg "CP4BA.BTS_EXTERNAL_POSTGRES_DATABASE_SSL_CERT_FILE_FOLDER: \"$bts_external_db_cert_folder\""
+        fi
+        if [[ ! -z $im_external_db_cert_folder ]]; then
+            msg "CP4BA.EXTERNAL_ROOT_CA_FOR_OPENSEARCH_KAFKA_FOLDER: \"$external_cert_issuer_folder\""
+        fi
+        warning "You need to use different directory for above certificate folder's property."
+
+    fi
+
     if [[ "$error_value_tag" == "1" ]]; then
         exit 1
     fi
@@ -4813,7 +4885,7 @@ element_val.ORACLE_URL_WITHOUT_WALLET_DIRECTORY=\"(DESCRIPTION=(ADDRESS=(PROTOCO
         echo "## Provide the environment owner name for ADP. For example: \"CN=sampleOwnerUser,DC=sampleDC,DC=com\"" >> ${USER_PROFILE_PROPERTY_FILE}
         echo "ADP.ENV_OWNER_USER_NAME=\"<Required>\"" >> ${USER_PROFILE_PROPERTY_FILE}
         echo "" >> ${USER_PROFILE_PROPERTY_FILE}
-        echo "## Provide the the environment owner password (if password has special characters then Base64 encoded with {Base64} prefix, otherwise use plain text) for ADP." >> ${USER_PROFILE_PROPERTY_FILE}
+        echo "## Provide the environment owner password (if password has special characters then Base64 encoded with {Base64} prefix, otherwise use plain text) for ADP." >> ${USER_PROFILE_PROPERTY_FILE}
         echo "ADP.ENV_OWNER_USER_PASSWORD=\"{Base64}<Required>\"" >> ${USER_PROFILE_PROPERTY_FILE}
         echo "" >> ${USER_PROFILE_PROPERTY_FILE}
 
@@ -5062,7 +5134,7 @@ element_val.ORACLE_URL_WITHOUT_WALLET_DIRECTORY=\"(DESCRIPTION=(ADDRESS=(PROTOCO
                 echo "$DB_SERVER_PREFIX.BAW_RUNTIME_DB_USER_PASSWORD=\"{Base64}<yourpassword>\"" >> ${DB_NAME_USER_PROPERTY_FILE}
             else
                 echo "## The designated database name on the PostgreSQL EDB for Business Automation Workflow Runtime. (Notes: DO NOT change the value in the property)" >> ${DB_NAME_USER_PROPERTY_FILE}
-                echo "$DB_SERVER_PREFIX.BAW_RUNTIME_DB_NAME=\"bawdb\"" >> ${DB_NAME_USER_PROPERTY_FILE}
+                echo "$DB_SERVER_PREFIX.BAW_RUNTIME_DB_NAME=\"bawdb0\"" >> ${DB_NAME_USER_PROPERTY_FILE}
                 echo "## The designated user name of the database for Business Automation Workflow Runtime. (Notes: DO NOT change the value in the property)" >> ${DB_NAME_USER_PROPERTY_FILE}
                 echo "$DB_SERVER_PREFIX.BAW_RUNTIME_DB_USER_NAME=\"bawuser\"" >> ${DB_NAME_USER_PROPERTY_FILE}
                 echo "## The designated password for the user of database for Business Automation Workflow Runtime. (Notes: DO NOT change the value in the property)" >> ${DB_NAME_USER_PROPERTY_FILE}

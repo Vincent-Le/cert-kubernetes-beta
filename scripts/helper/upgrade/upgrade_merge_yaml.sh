@@ -75,9 +75,10 @@ function convert_olm_cr(){
 
         local OLM_OPTIONAL_COMPONENT_CR_MAPPING=("spec.olm_production_option.adp.cmis"
                                                 "spec.olm_production_option.adp.css"
+                                                "spec.olm_production_option.adp.document_processing_runtime"
                                                 "spec.olm_production_option.adp.es"
                                                 "spec.olm_production_option.adp.tm"
-                                                
+
                                                 "spec.olm_production_option.ads.ads_designer"
                                                 "spec.olm_production_option.ads.ads_runtime"
                                                 "spec.olm_production_option.ads.bai"
@@ -105,6 +106,7 @@ function convert_olm_cr(){
                                                 "spec.olm_production_option.workfow_authoring.bai"
                                                 "spec.olm_production_option.workfow_authoring.pfs"
                                                 "spec.olm_production_option.workfow_authoring.kafka"
+                                                "spec.olm_production_option.workfow_authoring.ae_data_persistence"
 
                                                 "spec.olm_production_option.workfow_runtime.bai"
                                                 "spec.olm_production_option.workfow_runtime.kafka"
@@ -112,6 +114,48 @@ function convert_olm_cr(){
                                                 "spec.olm_production_option.workfow_runtime.elasticsearch")
         for i in "${!OLM_OPTIONAL_COMPONENT_CR_MAPPING[@]}"; do
             # echo "Element $i: ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]}"
+
+            # migration from elasticsearch to opensearch in workflow_runtime
+            if [[ ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]} == "spec.olm_production_option.workfow_runtime.elasticsearch" ]]; then
+                olm_optional_component_flag=`cat $cr_file | ${YQ_CMD} r - ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]}`
+                if [[ $olm_optional_component_flag == "true" ]]; then
+                    ${YQ_CMD} w -i ${cr_file} spec.olm_production_option.workfow_runtime.opensearch "true"
+                elif [[ $olm_optional_component_flag == "false" ]]; then
+                    ${YQ_CMD} w -i ${cr_file} spec.olm_production_option.workfow_runtime.opensearch "false"
+                elif [[ -z $olm_optional_component_flag ]]; then
+                    olm_workflow_runtime_flag=`cat $cr_file | ${YQ_CMD} r - spec.olm_production_workflow_deploy_type`
+                    if [[ $olm_workflow_runtime_flag == "workflow_runtime" ]]; then
+                        ${YQ_CMD} w -i ${cr_file} spec.olm_production_option.workfow_runtime.opensearch "true"
+                    fi
+                fi
+                ${YQ_CMD} d -i $cr_file ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]}
+            fi
+
+            # PFS is requird from 21.0.3/22.0.2 to 24.0.0 for workflow_authoring
+            if [[ ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]} == "spec.olm_production_option.workfow_authoring.pfs" ]]; then
+                olm_optional_component_flag=`cat $cr_file | ${YQ_CMD} r - ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]}`
+                if [[ $olm_optional_component_flag == "true" ]]; then
+                    ${YQ_CMD} w -i ${cr_file} spec.olm_production_option.workfow_authoring.pfs "true"
+                elif [[ $olm_optional_component_flag == "false" ]]; then
+                    ${YQ_CMD} w -i ${cr_file} spec.olm_production_option.workfow_authoring.pfs "false"
+                elif [[ -z $olm_optional_component_flag ]]; then
+                    olm_workfow_authoring_flag=`cat $cr_file | ${YQ_CMD} r - spec.olm_production_workflow_deploy_type`
+                    if [[ $olm_workfow_authoring_flag == "workflow_authoring" ]]; then
+                        ${YQ_CMD} w -i ${cr_file} spec.olm_production_option.workfow_authoring.pfs "true"
+                    fi
+                fi
+            fi
+
+            # remove ae_data_persistence and enable olm_production_application
+            if [[ ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]} == "spec.olm_production_option.workfow_authoring.ae_data_persistence" ]]; then
+                olm_optional_component_flag=`cat $cr_file | ${YQ_CMD} r - ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]}`
+                if [[ $olm_optional_component_flag == "true" ]]; then
+                    ${YQ_CMD} w -i ${cr_file} spec.olm_production_application "true"
+                    ${YQ_CMD} w -i ${cr_file} spec.olm_production_option.application.ae_data_persistence "true"
+                fi
+                ${YQ_CMD} d -i $cr_file ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]}
+            fi
+
             olm_optional_component_flag=`cat $cr_file | ${YQ_CMD} r - ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]}`
             if [[ $olm_optional_component_flag == "true" ]]; then
                 OIFS=$IFS
@@ -119,18 +163,8 @@ function convert_olm_cr(){
                 last_element="${array[-1]}"
                 EXISTING_OPT_COMPONENT_ARR=( "${EXISTING_OPT_COMPONENT_ARR[@]}" "$last_element" )
                 IFS=$OIFS
-            elif [[ -z $olm_pattern_flag ]]; then
+            elif [[ -z $olm_pattern_flag && ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]} != "spec.olm_production_option.workfow_authoring.ae_data_persistence" && ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]} != "spec.olm_production_option.workfow_runtime.elasticsearch" ]]; then
                 ${YQ_CMD} w -i ${cr_file} ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]} "false"
-            fi
-
-            if [[ ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]} == "spec.olm_production_option.workfow_runtime.elasticsearch" ]]; then
-                olm_optional_component_flag=`cat $cr_file | ${YQ_CMD} r - ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]}`
-                if [[ $olm_optional_component_flag == "true" ]]; then
-                    ${YQ_CMD} w -i ${cr_file} spec.olm_production_option.workfow_runtime.opensearch "true"
-                else
-                    ${YQ_CMD} w -i ${cr_file} spec.olm_production_option.workfow_runtime.opensearch "false"
-                fi
-                ${YQ_CMD} d -i $cr_file ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]}
             fi
         done
 
@@ -263,7 +297,7 @@ function select_apply_cr(){
     #     "n"|"N"|"no"|"No"|"NO")
     #         if [[ " ${EXISTING_OPT_COMPONENT_ARR[@]} " =~ "css" || $css_flag == "true" ]]; then
     #             warning "The script CAN NOT apply the new version of custom resource \"$cr_file\"."
-    #             info "${YELLOW_TEXT}You have Content Search Services (CSS) installed.${RESET_TEXT}${RED_TEXT} Make sure you stop the the IBM Content Search Services index dispatcher follow step in [NEXT ACTION]${RESET_TEXT} ${YELLOW_TEXT}before apply the new version of custom resource.${RESET_TEXT}"
+    #             info "${YELLOW_TEXT}You have Content Search Services (CSS) installed.${RESET_TEXT}${RED_TEXT} Make sure you stop the IBM Content Search Services index dispatcher follow step in [NEXT ACTION]${RESET_TEXT} ${YELLOW_TEXT}before apply the new version of custom resource.${RESET_TEXT}"
     #             APPLY_UPDATED_CR="No"
     #         else
     #             APPLY_UPDATED_CR="Yes"
@@ -310,11 +344,11 @@ function upgrade_deployment(){
                 # fi
                 # if [[ ! -f $UPGRADE_DEPLOYMENT_CONTENT_CR_TMP ]]; then
                 ${CLI_CMD} get $cr_type $content_cr_name -n $deployment_project_name -o yaml > ${UPGRADE_DEPLOYMENT_CONTENT_CR_TMP}
-                
+
                 # Update the appVersion in foundationrequest
                 foundationrequest_cr_name=$(${CLI_CMD} get foundationrequest -n $deployment_project_name --no-headers --ignore-not-found | awk '{print $1}')
                 ${CLI_CMD} patch foundationrequest $foundationrequest_cr_name -n $deployment_project_name -p '{"spec":{"appVersion":"$CP4BA_RELEASE_BASE"}}' --type=merge >/dev/null 2>&1
-                
+
                 # Backup existing content CR
                 mkdir -p ${UPGRADE_DEPLOYMENT_CR_BAK}
                 ${COPY_CMD} -rf ${UPGRADE_DEPLOYMENT_CONTENT_CR_TMP} ${UPGRADE_DEPLOYMENT_CONTENT_CR_BAK}
@@ -349,7 +383,7 @@ function upgrade_deployment(){
                         ${YQ_CMD} m -i -a -M --overwrite ${UPGRADE_DEPLOYMENT_CONTENT_CR_TMP} ${UPGRADE_DEPLOYMENT_BAI_TMP}
                         success "Merged Flink job savepoint into new version of custom resource."
                     else
-                       warning "Not found file ${UPGRADE_DEPLOYMENT_BAI_TMP}." 
+                       warning "Not found file ${UPGRADE_DEPLOYMENT_BAI_TMP}."
                     fi
                 fi
 
@@ -439,7 +473,7 @@ function upgrade_deployment(){
                 info "IMAGE TAGS ARE REMOVED FROM THE NEW VERSION OF THE CUSTOM RESOURCE \"${UPGRADE_DEPLOYMENT_CONTENT_CR}\"."
                 printf "\n"
 
-                echo "${YELLOW_TEXT}[ATTENTION]: ${RESET_TEXT}${YELLOW_TEXT}PLEASE DON'T SET ${RESET_TEXT}${RED_TEXT}\"shared_configuration.sc_egress_configuration.sc_restricted_internet_access\"${RESET_TEXT}${YELLOW_TEXT} AS ${RESET_TEXT}${RED_TEXT}\"true\"${RESET_TEXT}${YELLOW_TEXT} UNTIL AFTER YOU'VE COMPLETED THE CP4BA UPGRADE TO $CP4BA_RELEASE_BASE.${RESET_TEXT}"
+                echo "${YELLOW_TEXT}[ATTENTION]: ${RESET_TEXT}${YELLOW_TEXT}PLEASE DON'T SET ${RESET_TEXT}${RED_TEXT}\"shared_configuration.sc_egress_configuration.sc_restricted_internet_access\"${RESET_TEXT}${YELLOW_TEXT} AS ${RESET_TEXT}${RED_TEXT}\"true\"${RESET_TEXT}${YELLOW_TEXT} UNTIL AFTER YOU'VE COMPLETED THE CP4BA UPGRADE TO $CP4BA_RELEASE_BASE.${RESET_TEXT} ${GREEN_TEXT}(UNLESS YOU ALREADY HAD THIS SET TO \"true\" IN THE CP4BA 23.0.2.X)${RESET_TEXT}"
                 read -rsn1 -p"Press any key to continue ...";echo
                 printf "\n"
 
@@ -475,7 +509,8 @@ function upgrade_deployment(){
                     step_num=1
                     printf "\n"
 
-                    echo "${YELLOW_TEXT}- After review or modify the custom resource file \"${UPGRADE_DEPLOYMENT_CONTENT_CR}\", you need to follow below steps to upgrade this CP4BA deployment.${RESET_TEXT}"
+                    echo "${YELLOW_TEXT}- Refer to the Knowledge Center: \"Updating the custom resource for each capability in your deployment\" chapter (https://www.ibm.com/docs/en/cloud-paks/cp-biz-automation/24.0.0?topic=uycpdf2-updating-custom-resource-each-capability-in-your-deployment) to complete REQUIRED steps for the installed pattern(s).${RESET_TEXT}"
+                    echo "${YELLOW_TEXT}- After review or modify the custom resource file \"${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR}\", and then you need to follow below steps to upgrade this CP4BA deployment.${RESET_TEXT}"
 
                     if [[ $initialize_cfg_flag != "" && $verify_cfg_flag != "" ]]; then
                         echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}:${GREEN_TEXT} # ${CLI_CMD} patch content $content_cr_name -n $deployment_project_name --type=json -p='[{"op": "remove", "path": "/spec/initialize_configuration"}]'${RESET_TEXT}" && step_num=$((step_num + 1))
@@ -530,7 +565,7 @@ function upgrade_deployment(){
             UPGRADE_DEPLOYMENT_WFPS_CR_BAK=${UPGRADE_DEPLOYMENT_CR_BAK}/wfps_cr_${cr_metaname}_backup.yaml
 
             ${CLI_CMD} get $cr_type ${item} -n $deployment_project_name -o yaml > ${UPGRADE_DEPLOYMENT_WFPS_CR_TMP}
-            
+
             # Backup existing WfPSRuntime CR
             mkdir -p ${UPGRADE_DEPLOYMENT_CR_BAK}
             ${COPY_CMD} -rf ${UPGRADE_DEPLOYMENT_WFPS_CR_TMP} ${UPGRADE_DEPLOYMENT_WFPS_CR_BAK}
@@ -644,7 +679,7 @@ function upgrade_deployment(){
         if [[ $olm_cr_flag == "No" ]]; then
             existing_pattern_list=""
             existing_opt_component_list=""
-            
+
             EXISTING_PATTERN_ARR=()
             EXISTING_OPT_COMPONENT_ARR=()
             existing_pattern_list=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.shared_configuration.sc_deployment_patterns`
@@ -656,7 +691,7 @@ function upgrade_deployment(){
             IFS=$OIFS
         fi
 
-        # # Check if the cp-console-iam-provider/cp-console-iam-idmgmt already created before upgrade CP4BA deployment.  
+        # # Check if the cp-console-iam-provider/cp-console-iam-idmgmt already created before upgrade CP4BA deployment.
         # if [[ (" ${EXISTING_PATTERN_ARR[@]} " =~ "content") || (" ${EXISTING_PATTERN_ARR[@]} " =~ "workflow") || (" ${EXISTING_PATTERN_ARR[@]} " =~ "document_processing") || (" ${EXISTING_OPT_COMPONENT_ARR[@]} " =~ "baw_authoring") || (" ${EXISTING_OPT_COMPONENT_ARR[@]} " =~ "ae_data_persistence") ]]; then
         #     iam_idprovider=$(${CLI_CMD} get route -n $deployment_project_name -o 'custom-columns=NAME:.metadata.name' --no-headers --ignore-not-found | grep cp-console-iam-provider)
         #     iam_idmgmt=$(${CLI_CMD} get route -n $deployment_project_name -o 'custom-columns=NAME:.metadata.name' --no-headers --ignore-not-found | grep cp-console-iam-idmgmt)
@@ -684,7 +719,7 @@ function upgrade_deployment(){
         ${SED_COMMAND} "s|release: .*|release: ${CP4BA_RELEASE_BASE}|g" ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP}
         ${SED_COMMAND} "s|appVersion: .*|appVersion: ${CP4BA_RELEASE_BASE}|g" ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP}
 
-        # 21.0.3 
+        # 21.0.3
         # if select baw authoring
         if [[ $cr_verison != "${CP4BA_RELEASE_BASE}" && $cr_verison == "21.0.3" && (" ${EXISTING_OPT_COMPONENT_ARR[@]} " =~ "baw_authoring") ]]; then
             # Add application to sc_deployment_patterns and add app_designer to sc_optional_components to keep application pattern
@@ -697,8 +732,8 @@ function upgrade_deployment(){
                 ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.bastudio_configuration.database.name "\"$baw_auth_db_name\""
             else
                 warning "Not found the value of \"spec.workflow_authoring_configuration.database.database_name\" from ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP}"
-            fi            
- 
+            fi
+
             # Update the Business Automation Studio admin secret to replace the database username and password of Business Automation Studio with the database username and password of Business Automation Workflow Authoring.
             baw_auth_db_secret_name=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.workflow_authoring_configuration.database.secret_name`
             if [[ ! -z $baw_auth_db_secret_name ]]; then
@@ -706,13 +741,13 @@ function upgrade_deployment(){
                     baw_auth_db_secret_name=$(echo "$baw_auth_db_secret_name" | sed "s/{{\s*meta\.name\s*}}/${cr_metaname}/g")
                 fi
                 baw_auth_db_user_name=$(${CLI_CMD} get secret $baw_auth_db_secret_name --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o jsonpath='{.data.dbUser}' | base64 -d)
-            
+
                 if [[ -z $baw_auth_db_user_name ]]; then
                     baw_auth_db_user_name=$(${CLI_CMD} get secret $baw_auth_db_secret_name --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o jsonpath='{.stringData.dbUser}' | base64 -d)
                 fi
 
                 baw_auth_db_user_pwd=$(${CLI_CMD} get secret $baw_auth_db_secret_name --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o jsonpath='{.data.password}' | base64 -d)
-            
+
                 if [[ -z $baw_auth_db_user_pwd ]]; then
                     baw_auth_db_user_pwd=$(${CLI_CMD} get secret $baw_auth_db_secret_name --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o jsonpath='{.stringData.password}' | base64 -d)
                 fi
@@ -736,7 +771,7 @@ function upgrade_deployment(){
                         ${CLI_CMD} patch secret $bas_db_secret_name -n $TARGET_PROJECT_NAME -p '{"data":{"dbUsername":"'$(echo -n "$baw_auth_db_user_name" | base64)'"}}' >/dev/null 2>&1
                     fi
 
-                    # Update User Password 
+                    # Update User Password
                     bas_db_user_pwd=$(${CLI_CMD} get secret $bas_db_secret_name --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o jsonpath='{.data.dbPassword}' | base64 -d)
                     if [[ -z $bas_db_user_pwd ]]; then
                         bas_db_user_pwd=$(${CLI_CMD} get secret $bas_db_secret_name --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o jsonpath='{.stringData.dbPassword}' | base64 -d)
@@ -750,7 +785,7 @@ function upgrade_deployment(){
                     fi
                 else
                     warning "Not found the value of \"spec.bastudio_configuration.admin_secret_name\" from ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP}"
-                fi 
+                fi
 
             else
                 warning "Not found the value of \"spec.workflow_authoring_configuration.database.secret_name\" from ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP}"
@@ -764,12 +799,14 @@ function upgrade_deployment(){
                 EXISTING_OPT_COMPONENT_ARR=( "${EXISTING_OPT_COMPONENT_ARR[@]}" "kafka" )
             fi
         fi
-        
+
         # make PFS as an optional component for BAW and WfPS Authoring
         if [[ (" ${EXISTING_PATTERN_ARR[@]} " =~ "workflow") || (" ${EXISTING_PATTERN_ARR[@]} " =~ "workflow-process-service") ]]; then
             if [[ (" ${EXISTING_OPT_COMPONENT_ARR[@]} " =~ "baw_authoring") || (" ${EXISTING_PATTERN_ARR[@]} " =~ "workflow-process-service") ]]; then
                 if [[ ! (" ${EXISTING_OPT_COMPONENT_ARR[@]} " =~ "pfs") ]]; then
-                    EXISTING_OPT_COMPONENT_ARR=( "${EXISTING_OPT_COMPONENT_ARR[@]}" "pfs" )
+                    if [[ $cr_verison != "${CP4BA_RELEASE_BASE}" && ($cr_verison == "21.0.3" || $cr_verison == "22.0.2") ]]; then
+                        EXISTING_OPT_COMPONENT_ARR=( "${EXISTING_OPT_COMPONENT_ARR[@]}" "pfs" )
+                    fi
                 fi
             fi
             # Workflow authoring/WfPS authoring use embedded PFS starting from $CP4BA_RELEASE_BASE
@@ -787,7 +824,7 @@ function upgrade_deployment(){
             ${YQ_CMD} d -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.workflow_authoring_configuration.pfs_bpd_database_init_job
             # DBACLD-113568
             ${YQ_CMD} d -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.workflow_authoring_configuration.kafka_services
-            
+
             ${CLI_CMD} patch icp4acluster $icp4acluster_cr_name -n $deployment_project_name --type=json -p='[{"op": "remove", "path": "/spec/pfs_configuration"}]' >/dev/null 2>&1
             ${CLI_CMD} patch icp4acluster $icp4acluster_cr_name -n $deployment_project_name --type=json -p='[{"op": "remove", "path": "/spec/baw_configuration/0/pfs_bpd_database_init_job"}]' >/dev/null 2>&1
             ${CLI_CMD} patch icp4acluster $icp4acluster_cr_name -n $deployment_project_name --type=json -p='[{"op": "remove", "path": "/spec/workflow_authoring_configuration/pfs_bpd_database_init_job"}]' >/dev/null 2>&1
@@ -812,7 +849,7 @@ function upgrade_deployment(){
                 ${YQ_CMD} m -i -a -M --overwrite ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} ${UPGRADE_DEPLOYMENT_BAI_TMP}
                 success "Merged Flink job savepoint into new version of custom resource."
             else
-                warning "Not found file ${UPGRADE_DEPLOYMENT_BAI_TMP}." 
+                warning "Not found file ${UPGRADE_DEPLOYMENT_BAI_TMP}."
             fi
         fi
 
@@ -914,7 +951,7 @@ function upgrade_deployment(){
                     baw_event_emitter_casetype_list=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.workflow_authoring_configuration.case.event_emitter.casetype_list`
                     baw_event_emitter_emitter_batch_size=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.workflow_authoring_configuration.case.event_emitter.emitter_batch_size`
                     baw_event_emitter_process_pe_events=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.workflow_authoring_configuration.case.event_emitter.process_pe_events`
-                    
+
                     ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.workflow_authoring_configuration.case.event_emitter.[0].tos_name "$baw_event_emitter_tos_name"
                     ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.workflow_authoring_configuration.case.event_emitter.[0].connection_point_name "$baw_event_emitter_connection_point_name"
                     ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.workflow_authoring_configuration.case.event_emitter.[0].date_sql "$baw_event_emitter_date_sql"
@@ -942,7 +979,7 @@ function upgrade_deployment(){
             if [[ $cr_verison != "${CP4BA_RELEASE_BASE}" && ($cr_verison == "21.0.3" || $cr_verison == "22.0.2") ]]; then
                 baw_instance_index=0
                 while true; do
-                    baw_instance_flag=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.baw_configuration.[${baw_instance_index}].case.event_emitter`                
+                    baw_instance_flag=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.baw_configuration.[${baw_instance_index}].case.event_emitter`
                     if [[ ! -z "$baw_instance_flag" ]]; then
                         baw_event_emitter_tos_name=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.baw_configuration.[${baw_instance_index}].case.datasource_name_tos`
                         baw_event_emitter_connection_point_name=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.baw_configuration.[${baw_instance_index}].case.connection_point_name_tos`
@@ -952,7 +989,7 @@ function upgrade_deployment(){
                         baw_event_emitter_casetype_list=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.baw_configuration.[${baw_instance_index}].case.event_emitter.casetype_list`
                         baw_event_emitter_emitter_batch_size=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.baw_configuration.[${baw_instance_index}].case.event_emitter.emitter_batch_size`
                         baw_event_emitter_process_pe_events=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.baw_configuration.[${baw_instance_index}].case.event_emitter.process_pe_events`
-                        
+
                         ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.baw_configuration.[${baw_instance_index}].case.event_emitter.[0].tos_name "$baw_event_emitter_tos_name"
                         ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.baw_configuration.[${baw_instance_index}].case.event_emitter.[0].connection_point_name "$baw_event_emitter_connection_point_name"
                         ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.baw_configuration.[${baw_instance_index}].case.event_emitter.[0].date_sql "$baw_event_emitter_date_sql"
@@ -988,8 +1025,8 @@ function upgrade_deployment(){
                     baw_connection_point_name_tos=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.workflow_authoring_configuration.case.connection_point_name_tos`
                     baw_target_environment_name=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.workflow_authoring_configuration.case.target_environment_name`
                     baw_desktop_name=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.workflow_authoring_configuration.case.desktop_name`
-                    
-                    if [[ (-z $baw_connection_point_name_tos || -z $baw_object_store_name_tos) && (-z $init_section) ]]; then    
+
+                    if [[ (-z $baw_connection_point_name_tos || -z $baw_object_store_name_tos) && (-z $init_section) ]]; then
                         warning "Not found both workflow_authoring_configuration.case.connection_point_name_tos/object_store_name_tos and oc_cpe_obj_store_workflow_pe_conn_point_name under initialize_configuration, please refer KC https://www.ibm.com/docs/en/cloud-paks/cp-biz-automation/$CP4BA_RELEASE_BASE?topic=deployment-upgrading-business-automation-workflow-authoring"
                     fi
                     if [[ ! -z "$baw_object_store_name_tos" ]]; then
@@ -1009,7 +1046,7 @@ function upgrade_deployment(){
                             ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.workflow_authoring_configuration.case.tos_list.[0].target_environment_name "$baw_target_environment_name"
                         fi
                         ${YQ_CMD} d -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.workflow_authoring_configuration.case.target_environment_name
-                        
+
                         if [[ -z $baw_desktop_name ]]; then
                             ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.workflow_authoring_configuration.case.tos_list.[0].desktop_id "baw"
                         else
@@ -1095,12 +1132,12 @@ function upgrade_deployment(){
                         baw_connection_point_name_tos=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.baw_configuration.[${baw_instance_index}].case.connection_point_name_tos`
                         baw_target_environment_name=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.baw_configuration.[${baw_instance_index}].case.target_environment_name`
                         baw_desktop_name=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.baw_configuration.[${baw_instance_index}].case.desktop_name`
-                        if [[ (-z $baw_connection_point_name_tos || -z $baw_object_store_name_tos) && (-z $init_section) ]]; then    
+                        if [[ (-z $baw_connection_point_name_tos || -z $baw_object_store_name_tos) && (-z $init_section) ]]; then
                             warning "Not found both baw_configuration.[${baw_instance_index}].case.connection_point_name_tos/object_store_name_tos and oc_cpe_obj_store_workflow_pe_conn_point_name under initialize_configuration, please refer KC https://www.ibm.com/docs/en/cloud-paks/cp-biz-automation/$CP4BA_RELEASE_BASE?topic=deployment-upgrading-business-automation-workflow-runtime"
                         fi
                         if [[ ! -z "$baw_object_store_name_tos" ]]; then
                             ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.baw_configuration.[${baw_instance_index}].case.tos_list.[0].object_store_name "$baw_object_store_name_tos"
-                            
+
                             if [[ ! -z $baw_connection_point_name_tos ]]; then
                                 ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.baw_configuration.[${baw_instance_index}].case.tos_list.[0].connection_point_name "$baw_connection_point_name_tos"
                             fi
@@ -1115,7 +1152,7 @@ function upgrade_deployment(){
                                 ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.baw_configuration.[${baw_instance_index}].case.tos_list.[0].target_environment_name "$baw_target_environment_name"
                             fi
                             ${YQ_CMD} d -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.baw_configuration.[${baw_instance_index}].case.target_environment_name
-                            
+
                             if [[ -z $baw_desktop_name ]]; then
                                 ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.baw_configuration.[${baw_instance_index}].case.tos_list.[0].desktop_id "baw"
                             else
@@ -1236,13 +1273,13 @@ function upgrade_deployment(){
         fi
 
         # if the baw runtim pattern selected
-        # For 21.0.3/22.0.2 upgrade, the opensearch should add into sc_optional_components, 
+        # For 21.0.3/22.0.2 upgrade, the opensearch should add into sc_optional_components,
         # for 23.0.2 upgrade, if elasticsearch existing in sc_optional_components, then add opensearch in sc_optional_components.
         if [[ (! " ${EXISTING_OPT_COMPONENT_ARR[@]} " =~ "baw_authoring") && (" ${EXISTING_PATTERN_ARR[@]} " =~ "workflow" || " ${EXISTING_PATTERN_ARR[@]} " =~ "workflow-workstreams") ]]; then
             if [[ $cr_verison != "${CP4BA_RELEASE_BASE}" && $cr_verison == "23.0.2" ]]; then
                 if [[ " ${EXISTING_OPT_COMPONENT_ARR[@]}" =~ "elasticsearch" ]]; then
                     EXISTING_OPT_COMPONENT_ARR=( "${EXISTING_OPT_COMPONENT_ARR[@]}" "opensearch" )
-                    
+
                     # remove elasticsearch from sc_optional_components
                     TEMP_ARRAY=()
                     for item in "${EXISTING_OPT_COMPONENT_ARR[@]}"; do
@@ -1250,7 +1287,7 @@ function upgrade_deployment(){
                             TEMP_ARRAY+=("$item")
                         fi
                     done
-                    EXISTING_OPT_COMPONENT_ARR=("${TEMP_ARRAY[@]}")                    
+                    EXISTING_OPT_COMPONENT_ARR=("${TEMP_ARRAY[@]}")
                 fi
             fi
 
@@ -1267,7 +1304,7 @@ function upgrade_deployment(){
                 EXISTING_OPT_COMPONENT_ARR=("${TEMP_ARRAY[@]}")
             fi
         fi
- 
+
         if [[ (" ${EXISTING_PATTERN_ARR[@]} " =~ "content") || (" ${EXISTING_PATTERN_ARR[@]} " =~ "workflow") || (" ${EXISTING_PATTERN_ARR[@]} " =~ "document_processing") || (" ${EXISTING_OPT_COMPONENT_ARR[@]} " =~ "baw_authoring") || (" ${EXISTING_OPT_COMPONENT_ARR[@]} " =~ "ae_data_persistence") ]]; then
             if [[ $olm_cr_flag == "No" ]]; then
             # Disable sc_content_initialization/sc_content_verification
@@ -1391,6 +1428,10 @@ function upgrade_deployment(){
         ${SED_COMMAND} "s/: \"No\"/: false/g" ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP}
         ${SED_COMMAND} "s/: \"no\"/: false/g" ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP}
 
+        # must use string type for nodelabel_value in ADP
+        if [[ (" ${EXISTING_PATTERN_ARR[@]} " =~ "document_processing") ]]; then
+            ${SED_COMMAND} 's/\(nodelabel_value: \)\([^"][^ ]*\)/\1"\2"/' ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} >/dev/null 2>&1
+        fi
         # Remove all null string
         ${SED_COMMAND} "s/: null/: /g" ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP}
 
@@ -1426,7 +1467,7 @@ function upgrade_deployment(){
         info "IMAGE TAGS ARE REMOVED FROM THE NEW VERSION OF THE CUSTOM RESOURCE \"${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR}\"."
         printf "\n"
 
-        echo "${YELLOW_TEXT}[ATTENTION]: ${RESET_TEXT}${YELLOW_TEXT}PLEASE DON'T SET ${RESET_TEXT}${RED_TEXT}\"shared_configuration.sc_egress_configuration.sc_restricted_internet_access\"${RESET_TEXT}${YELLOW_TEXT} AS ${RESET_TEXT}${RED_TEXT}\"true\"${RESET_TEXT}${YELLOW_TEXT} UNTIL AFTER YOU'VE COMPLETED THE CP4BA UPGRADE TO $CP4BA_RELEASE_BASE.${RESET_TEXT}"
+        echo "${YELLOW_TEXT}[ATTENTION]: ${RESET_TEXT}${YELLOW_TEXT}PLEASE DON'T SET ${RESET_TEXT}${RED_TEXT}\"shared_configuration.sc_egress_configuration.sc_restricted_internet_access\"${RESET_TEXT}${YELLOW_TEXT} AS ${RESET_TEXT}${RED_TEXT}\"true\"${RESET_TEXT}${YELLOW_TEXT} UNTIL AFTER YOU'VE COMPLETED THE CP4BA UPGRADE TO $CP4BA_RELEASE_BASE.${RESET_TEXT} ${GREEN_TEXT}(UNLESS YOU ALREADY HAD THIS SET TO \"true\" IN THE CP4BA 23.0.2.X)${RESET_TEXT}"
         read -rsn1 -p"Press any key to continue ...";echo
         printf "\n"
         select_apply_cr $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR
@@ -1458,20 +1499,21 @@ function upgrade_deployment(){
             echo "${YELLOW_TEXT}[NEXT ACTION]:${RESET_TEXT}"
             step_num=1
             for element in "${EXISTING_PATTERN_ARR[@]}"; do
-                if [[ "$element" == "decisions" && "$element" != "decisions_ads" ]]; then
-                    echo -e "\x1B[33;5m- Automation Decision Services capality is installed in this CP4BA deployment: \x1B[0m"
-                    echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: Please refer Docs to update custom resource for ADS before you apply it."
-                    echo "  - Add the storage_configuration.sc_block_storage_classname property in the CR file if it is not already included."            
-                    echo "  - Optional: If the decision runtime secret was manually created, add the following properties:"            
-                    echo "    - deploymentSpaceManagerUsername"
-                    echo "    - deploymentSpaceManagerPassword"           
-                    echo "    - asraManagerUsername"
-                    echo "    - asraManagerPassword"
+                if [[ "$element" != "decisions" && "$element" == "decisions_ads" ]]; then
+                    echo -e "\x1B[33;5m- Automation Decision Services capability is installed in this CP4BA deployment: \x1B[0m"
+                    echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: Please refer to the documentation for Automation Decision Services upgrade."
+                    echo "  - https://www.ibm.com/docs/en/cloud-paks/cp-biz-automation/24.0.0?topic=deployment-upgrading-automation-decision-services"
+                    echo "  - Add the storage_configuration.sc_block_storage_classname property in the CR file if it is not already included."
+                    # echo "  - Optional: If the decision runtime secret was manually created, add the following properties:"
+                    # echo "    - deploymentSpaceManagerUsername"
+                    # echo "    - deploymentSpaceManagerPassword"
+                    # echo "    - asraManagerUsername"
+                    # echo "    - asraManagerPassword"
                     step_num=$((step_num + 1))
                     printf "\n"
                 fi
             done
-            
+
             # output info for upgrading document process databases
             if [[ (" ${EXISTING_PATTERN_ARR[@]} " =~ "document_processing") ]]; then
                     echo -e "\x1B[33;5m- Automation Document Processing capability is installed in this CP4BA deployment: \x1B[0m"
@@ -1479,10 +1521,10 @@ function upgrade_deployment(){
                     echo "    - If you are upgrading from 21.0.3 or 22.0.2, please refer to the Knowledge Center topic: ${GREEN_TEXT}\"Upgrading your Automation Document Processing databases\"${RESET_TEXT} https://www.ibm.com/docs/en/cloud-paks/cp-biz-automation/$CP4BA_RELEASE_BASE?topic=2202-upgrading-your-automation-document-processing-databases"
                     echo "    - If you are upgrading from 23.0.2, please refer to the Knowledge Center topic: ${GREEN_TEXT}\"Upgrading your Automation Document Processing databases\"${RESET_TEXT} https://www.ibm.com/docs/en/cloud-paks/cp-biz-automation/$CP4BA_RELEASE_BASE?topic=2302-upgrading-your-automation-document-processing-databases"
                     step_num=$((step_num + 1))
-                    
+
                     # NOTE: After discussion with ADP team, we will only output a link to KC since the details of the steps may change based on the ADP version.
                     # NOTE: The commented-out code below is included just in case we change our minds and want to include more specific info in our steps.
-                    
+
                     # aca_db_type=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.datasource_configuration.dc_ca_datasource.dc_database_type`
                     # aca_db_server=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.datasource_configuration.dc_ca_datasource.database_servername`
                     # aca_base_db=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.datasource_configuration.dc_ca_datasource.database_name`
@@ -1496,7 +1538,7 @@ function upgrade_deployment(){
 
                     # # Get tenant_db list
                     # item=0
-                    # while true; do   
+                    # while true; do
                     #     tenant_name=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.datasource_configuration.dc_ca_datasource.tenant_databases.[${item}]`
                     #     if [[ -z "$tenant_name" ]]; then
                     #         break
@@ -1521,8 +1563,8 @@ function upgrade_deployment(){
                     # echo "      - Run ${GREEN_TEXT}\"${PARENT_DIR}/ACA/configuration-ha/${aca_db_dir}/UpgradeTenantDB.sh\"${RESET_TEXT} (or \"UpgradeTenantDB.bat\" if Windows) for each tenant database: ${GREEN_TEXT}\"$aca_tenant_db_joined\"${RESET_TEXT}"
                     printf "\n"
             fi
-
-            echo "${YELLOW_TEXT}- After review or modify the custom resource file \"${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR}\", you need to follow below steps to upgrade this CP4BA deployment.${RESET_TEXT}"
+            echo "${YELLOW_TEXT}- Refer to the Knowledge Center: \"Updating the custom resource for each capability in your deployment\" chapter (https://www.ibm.com/docs/en/cloud-paks/cp-biz-automation/24.0.0?topic=uycpdf2-updating-custom-resource-each-capability-in-your-deployment) to complete REQUIRED steps for the installed pattern(s).${RESET_TEXT}"
+            echo "${YELLOW_TEXT}- After review or modify the custom resource file \"${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR}\", and then you need to follow below steps to upgrade this CP4BA deployment.${RESET_TEXT}"
             if [[ $initialize_cfg_flag != "" && $verify_cfg_flag != "" ]]; then
                 echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}:${GREEN_TEXT} # ${CLI_CMD} patch icp4acluster $icp4acluster_cr_name -n $deployment_project_name --type=json -p='[{"op": "remove", "path": "/spec/initialize_configuration"}]'${RESET_TEXT}" && step_num=$((step_num + 1))
                 echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}:${GREEN_TEXT} # ${CLI_CMD} patch icp4acluster $icp4acluster_cr_name -n $deployment_project_name --type=json -p='[{"op": "remove", "path": "/spec/verify_configuration"}]'${RESET_TEXT}"  && step_num=$((step_num + 1))

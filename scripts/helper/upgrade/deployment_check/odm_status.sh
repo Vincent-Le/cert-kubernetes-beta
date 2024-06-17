@@ -19,6 +19,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_ODM_DECISION_CENTER_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ODM_DECISION_CENTER_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ODM_DECISION_CENTER_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_ODM_DECISION_CENTER_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -33,6 +35,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_ODM_DECISION_RUNNER_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ODM_DECISION_RUNNER_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ODM_DECISION_RUNNER_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_ODM_DECISION_RUNNER_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -47,6 +51,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_ODM_DECISIONSERVER_CONSOLE_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ODM_DECISIONSERVER_CONSOLE_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ODM_DECISIONSERVER_CONSOLE_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_ODM_DECISIONSERVER_CONSOLE_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -61,6 +67,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_ODM_DECISIONSERVER_RUNTIME_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ODM_DECISIONSERVER_RUNTIME_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ODM_DECISIONSERVER_RUNTIME_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_ODM_DECISIONSERVER_RUNTIME_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi

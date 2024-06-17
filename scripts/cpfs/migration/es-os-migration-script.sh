@@ -1,4 +1,12 @@
 #!/bin/bash
+##################################################################
+# Licensed Materials - Property of IBM
+#  5737-I23
+#  Copyright IBM Corp. 2024. All Rights Reserved.
+#  U.S. Government Users Restricted Rights:
+#  Use, duplication or disclosure restricted by GSA ADP Schedule
+#  Contract with IBM Corp.
+##################################################################
 # Script Name: elastic_opensearch_migration.sh
 # Author: Tamilanban Rajendran <tamilanban.rajendran@ibm.com>
 # Co-Author: Infant Sabin <infant.sabin.a@ibm.com>
@@ -227,30 +235,18 @@ echo "$all_indices"
 # Check if -include_indices is provided
 if [[ -n $include_indices ]]; then
     # Convert comma-separated include_indices to an array
-    IFS=',' read -r -a include_indices_array <<< "$include_indices"
+    include_indices_array=($(echo "$include_indices" | tr ',' '\n'))
     
     # Initialize an empty array to store valid included indices
     valid_included_indices=()
-    
     # Iterate through each index specified with -include_indices
     for include_index in "${include_indices_array[@]}"; do
-        # Flag to track if the include_index was found
-        found=false
-        
-        # Iterate through each index in the list of all indices
-        for index in "${SOURCE_INDICES[@]}"; do
-            # Check if the include_index matches the current index
-            if [[ $index == "$include_index" ]]; then
-                # If the include_index exists, add it to the list of valid included indices
-                valid_included_indices+=("$include_index")
-                found=true
-                break
-            fi
-        done
-
-        # Check if the include_index was not found in the list of all indices
-        if [[ $found == false ]]; then
-            # Print a warning message
+        # Check if the include_index exists in the list of all indices
+        if [[ " ${SOURCE_INDICES[*]} " == *" $include_index "* ]]; then
+            # If the include_index exists, add it to the list of valid included indices
+            valid_included_indices+=("$include_index")
+        else
+            # If the include_index does not exist, print a warning message
             echo "Warning: Index '$include_index' specified with -include_indices does not exist in Elasticsearch."
         fi
     done
@@ -258,7 +254,6 @@ if [[ -n $include_indices ]]; then
     # Set SOURCE_INDICES to valid_included_indices
     SOURCE_INDICES=("${valid_included_indices[@]}")
 fi
-
 # Check if -include_regex is provided
 if [[ -n $include_regex ]]; then
     filtered_indices_array=($(include_indices_regex "$include_regex" "${SOURCE_INDICES[@]}"))
@@ -269,34 +264,20 @@ fi
 # Check if -exclude_indices is provided
 if [[ -n $exclude_indices ]]; then
     # Convert comma-separated exclude_indices to an array
-    IFS=',' read -r -a exclude_indices_array <<< "$exclude_indices"
+    exclude_indices_array=($(echo "$exclude_indices" | tr ',' '\n'))
 
     # Iterate through each index specified with -exclude_indices
     for exclude_index in "${exclude_indices_array[@]}"; do
-        # Flag to track if the exclude_index was found
-        found=false
-
-        # Iterate through each index in the list of all indices
-        for ((i = 0; i < ${#SOURCE_INDICES[@]}; i++)); do
-            index=${SOURCE_INDICES[i]}
-            # Check if the exclude_index matches the current index
-            if [[ $index == "$exclude_index" ]]; then
-                # If the exclude_index exists, remove it from the list of SOURCE_INDICES
-                unset 'SOURCE_INDICES[i]'
-                found=true
-                break
-            fi
-        done
-
-        # Check if the exclude_index was not found in the list of all indices
-        if [[ $found == false ]]; then
-            # Print a warning message
+        # Check if the exclude_index exists in the list of all indices
+        if [[ " ${SOURCE_INDICES[*]} " == *" $exclude_index "* ]]; then
+            # If the exclude_index exists, remove it from the list of SOURCE_INDICES
+            SOURCE_INDICES=("${SOURCE_INDICES[@]/$exclude_index}")
+        else
+            # If the exclude_index does not exist, print a warning message
             echo "Warning: Index '$exclude_index' specified with -exclude_indices does not exist in Elasticsearch."
         fi
     done
 fi
-
-
 # Check if -exclude_regex is provided
 if [[ -n $exclude_regex ]]; then
     # Iterate through each index in the list of all indices

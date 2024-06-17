@@ -19,6 +19,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_CPE_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_CPE_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_CPE_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_CPE_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -33,6 +35,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_GRAPHQL_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_GRAPHQL_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_GRAPHQL_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_GRAPHQL_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -44,6 +48,8 @@ elif [[ "$isInstalled" == "Upgrading" || "$isInstalled" == "Restoring" ]]; then
     CP4BA_CSS_DEPLOYMENT_STATUS="${BLUE_TEXT}In Progress${RESET_TEXT}"
 elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_CSS_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_CSS_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_CSS_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -57,6 +63,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_CMIS_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_CMIS_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_CMIS_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_CMIS_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -70,6 +78,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_IER_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_IER_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_IER_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_IER_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -83,6 +93,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_ICC_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ICC_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ICC_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_ICC_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -96,6 +108,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_TM_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_TM_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_TM_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_TM_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -109,6 +123,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_BAN_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_BAN_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_BAN_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_BAN_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi
@@ -122,6 +138,8 @@ elif [[ "$isInstalled" == "Ready" ]]; then
     CP4BA_ES_DEPLOYMENT_STATUS="${GREEN_TEXT}Done${RESET_TEXT}"
 elif [[ "$isInstalled" == "NotReady" ]]; then
     CP4BA_ES_DEPLOYMENT_STATUS="${RED_TEXT}Not Ready${RESET_TEXT}"
+elif [[ "$isInstalled" == "Failed" ]]; then
+    CP4BA_ES_DEPLOYMENT_STATUS="${RED_TEXT}Failed${RESET_TEXT}"
 elif [ -z "${isInstalled}"  ]; then
     CP4BA_ES_DEPLOYMENT_STATUS="${YELLOW_TEXT}Not Installed${RESET_TEXT}"
 fi

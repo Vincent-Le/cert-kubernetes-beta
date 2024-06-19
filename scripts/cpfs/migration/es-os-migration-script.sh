@@ -37,7 +37,7 @@ checkEnvVars() {
 
 # Function to print usage
 usage() {
-    echo "Usage: $0 [-dryrun] [-include=<comma separated indices>] [-exclude=<comma separated indices>] [-include_regex=<regex pattern>] [-exclude_regex=<regex pattern>] [-startdate=<start date>] [-enddate=<end date>] [logfile] [--help]"
+    echo "Usage: $0 [-dryrun] [-doc_count] [-include=<comma separated indices>] [-exclude=<comma separated indices>] [-include_regex=<comma separated regex patterns>] [-exclude_regex=<comma separated regex patterns>] [-startdate=<start date>] [-enddate=<end date>] [-timestamp_key=<date field key>] [-delete] [logfile] [--help]"
     echo "Options:"
     echo "  -dryrun                                   List of indices of elastic and displaying dry run steps"
     echo "  -doc_count                                List all indices of elastic and opensearch with document count, and exit."
@@ -47,11 +47,10 @@ usage() {
     echo "  -exclude_regex=<regex pattern>            List of regex pattern to exclude indices"
     echo "  -startdate=<start date>                   Start date for data migration (format: 'YYYY-MM-DDTHH:MM:SS')"
     echo "  -enddate=<end date>                       End date for data migration (format: 'YYYY-MM-DDTHH:MM:SS')"
-    echo "  -timestamp=<key>                          Key for date values (default: 'timestamp')"
+    echo "  -timestamp_key=<key>                          Key for date values (default: 'timestamp')"
     echo "  -delete                                   delete Opensearch indices"
     echo "  logfile                                   Optional: Log file to save migration summary"
     echo "  --help                                    Display usage details"
-    exit 0
 }
 
 function parseArgs() {
@@ -69,7 +68,7 @@ function parseArgs() {
     # Parse command line arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
-            -timestamp)
+            -timestamp_key)
                 timestamp="${1#*=}"
                 ;;
             -dryrun)
@@ -102,8 +101,13 @@ function parseArgs() {
                 ;;
             --help)
                 usage
+                exit 0
                 ;;
-            -*) ;;
+            -*) 
+                # option is not recognized 
+                usage
+                exit 1
+                ;;
             *)
                 logfile=$1
                 shift
@@ -270,15 +274,20 @@ function indexCount() {
 }
 
 function getIndices() { 
-    # Fetch all indices from Elasticsearch
-    all_indices=$(curl -s -X GET -u "$ELASTIC_USERNAME:$ELASTIC_PASSWORD" --insecure "$ELASTICSEARCH_URL/_cat/indices" | awk '{print $3}' | tr '\n' ',' | sed 's/,$//')
-
+    local server
+    # Fetch all indices from Elasticsearch (or OS, if deleting)
+    if $deleteIndices ;then
+      all_indices=$(curlGET "_cat/indices" | awk '{print $3}' | tr '\n' ',' | sed 's/,$//')
+      server=Opensearch
+    else
+      all_indices=$(curl -s -X GET -u "$ELASTIC_USERNAME:$ELASTIC_PASSWORD" --insecure "$ELASTICSEARCH_URL/_cat/indices" | awk '{print $3}' | tr '\n' ',' | sed 's/,$//')
+      server=Elasticsearch
+    fi
     # Convert comma-separated indices to an array
     IFS=',' read -ra SOURCE_INDICES <<< "$all_indices"
 
-    echo "All indices fetched from Elasticsearch:"
+    echo "All indices fetched from $server:"
     echo "$all_indices"
-    # echo "$SOURCE_INDICES"
 
     # Check if -include_indices is provided
     if [[ -n $include_indices ]]; then
@@ -476,21 +485,26 @@ function reindex() {
 }
 
 function doDeleteIndices () {
-  read -r -p "Delete these indices? [y/N]" -n 1
-  echo
-  if [[ "$REPLY" =~ ^[Yy]$ ]]; then
-    printf -v indexList '%s,' "${SOURCE_INDICES[@]}"
-    curlDELETE "${indexList%,}"
+  if [[ "${#SOURCE_INDICES[@]}" == 0 ]]; then
+    # empty list
+    echo "No index to delete."
   else
-    echo "Delete canceled."
+    read -r -p "Delete these indices? [y/N]" -n 1
+    echo
+    if [[ "$REPLY" =~ ^[Yy]$ ]]; then
+        printf -v indexList '%s,' "${SOURCE_INDICES[@]}"
+        curlDELETE "${indexList%,}"
+    else
+        echo "Delete canceled."
+    fi
   fi
 }
 
 function main() {
     # Start time for total migration
     total_start=$(date +%s)
-    checkEnvVars
     parseArgs "$@"
+    checkEnvVars
 
     getIndices
     # Print the list of indices

@@ -7,9 +7,9 @@
 #  Use, duplication or disclosure restricted by GSA ADP Schedule
 #  Contract with IBM Corp.
 ##################################################################
-
+# Author: Tamilanban Rajendran <tamilanban.rajendran@ibm.com>
+# Co-Authors: Infant Sabin <infant.sabin.a@ibm.com> Philippe Kaplan <kaplanph@fr.ibm.com>
 # Description: The following script retrieves all indices, mappings and aliases from Elasticsearch, restores them in OpenSearch and validates the document count of the OpenSearch index against Elasticsearch to ensure the successful migration of data
-
 # Elasticsearch and OpenSearch credentials
 export ELASTICSEARCH_URL
 export OPENSEARCH_URL
@@ -47,7 +47,7 @@ usage() {
     echo "  -exclude_regex=<regex pattern>            List of regex pattern to exclude indices"
     echo "  -startdate=<start date>                   Start date for data migration (format: 'YYYY-MM-DDTHH:MM:SS')"
     echo "  -enddate=<end date>                       End date for data migration (format: 'YYYY-MM-DDTHH:MM:SS')"
-    echo "  -timestamp_key=<key>                          Key for date values (default: 'timestamp')"
+    echo "  -timestamp_key=<key>                      Key for date values (default: 'timestamp')"
     echo "  -delete                                   delete Opensearch indices"
     echo "  logfile                                   Optional: Log file to save migration summary"
     echo "  --help                                    Display usage details"
@@ -68,7 +68,7 @@ function parseArgs() {
     # Parse command line arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
-            -timestamp_key)
+            -timestamp_key=*)
                 timestamp="${1#*=}"
                 ;;
             -dryrun)
